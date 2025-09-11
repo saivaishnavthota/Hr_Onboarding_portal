@@ -81,7 +81,7 @@ const EmployeeLogin = () => {
         setToast({ message: data.message || "Login successful!", isError: false });
 
         setTimeout(() => {
-          if (data.isNewUser) navigate("/new-user-form");
+          if (!data.isNewUser) navigate("/new-user-form");
           else if (data.role === "HR") navigate("/hr-dashboard");
           else if (data.role === "Manager") navigate("/manager-dashboard");
           else navigate("/employee-dashboard");

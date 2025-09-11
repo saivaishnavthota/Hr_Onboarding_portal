@@ -15,7 +15,7 @@ const CreateEmployee = () => {
   e.preventDefault();
 
   try {
-    const response = await fetch("/hr/create_employee", {
+    const response = await fetch(`${API_BASE_URL}/hr/create_employee`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData),
@@ -71,6 +71,7 @@ const CreateEmployee = () => {
               className="form-select"
               value={formData.role}
               onChange={handleChange}
+              required
             >
               <option value="">-- Select Role --</option>
               <option value="HR">HR</option>
@@ -79,9 +80,26 @@ const CreateEmployee = () => {
             </select>
           </div>
 
-          <button type="submit" className="btn btn-primary w-50 " >
-            Create
-          </button>
+           <div className="mb-3">
+            <label className="form-label">Employment Type</label>
+            <select
+              name="type"
+              className="form-select"
+              value={formData.type}
+              onChange={handleChange}
+              required
+            >
+              <option value="">-- Type --</option>
+              <option value="Full-time">Full time</option>
+              <option value="Contract">Contract</option>
+              <option value="Intern">Intern</option>
+            </select>
+          </div>
+          <div className="center-btn">
+  <button type="submit" className="btn btn-primary w-50">
+   Create
+  </button>
+</div>
         </form>
       </div>
     </div>

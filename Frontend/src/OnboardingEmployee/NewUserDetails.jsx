@@ -6,6 +6,7 @@ export default function NewUserDetails() {
   const [employee, setEmployee] = useState({
     fullName: "",
     email: "",
+    dob: "",
     phone: "",
     doj: "",
     address: "",
@@ -46,16 +47,37 @@ export default function NewUserDetails() {
     }
   };
 
-  const handleGoToDocs = () => {
-    localStorage.setItem("employeeDetails", JSON.stringify(employee)); 
-    navigate("/new-user-form/docs");   // ✅ navigate to docs upload
-  };
+const handleGoToDocs = async () => {
+  try {
+    // ✅ Send employee details to backend
+    const res = await fetch("http://localhost:5000/api/employees", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(employee),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to submit employee details");
+    }
+
+    const savedEmployee = await res.json();
+    localStorage.setItem("employeeDetails", JSON.stringify(savedEmployee));
+
+    // ✅ Navigate to docs upload page
+    navigate("/new-user-form/docs");
+  } catch (err) {
+    console.error(err);
+    alert("Error submitting employee details");
+  }
+};
+
 
   return (
     <div className="container">
       <div className="employee-details">
         <div className="form-section">
-          <h2>Employee Details</h2>
+          <h2>Onboarding Employee Details</h2>
+          <h4>Please fill the details below</h4>
           <div className="form-grid">
             <div>
               <label>Full Name</label>
@@ -67,10 +89,31 @@ export default function NewUserDetails() {
               <input type="email" name="email" value={employee.email} 
               onChange={handleChange} required />
             </div>
+             <div>
+              <label>Date Of Birth</label>
+              <input type="date" name="dob" value={employee.dob} 
+              onChange={handleChange} required />
+            </div>
             <div>
               <label>Phone Number</label>
               <input type="text" name="phone" value={employee.phone} 
               onChange={handleChange} required />
+            </div>
+            <div>
+              <label>Gender</label>
+              <select
+              name="gender"
+              className="form-select"
+              value={employee.gender}
+              onChange={handleChange}
+              required
+            >
+              <option value="">--  Gender --</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+
             </div>
             <div>
               <label>Date of Joining</label>
@@ -83,7 +126,7 @@ export default function NewUserDetails() {
               onChange={handleChange} required />
             </div>
             <div>
-              <label>Work Experience (years)</label>
+              <label id="star">Work Experience (years)</label>
               <input type="number" name="workExp" value={employee.workExp} 
               onChange={handleChange} />
             </div>

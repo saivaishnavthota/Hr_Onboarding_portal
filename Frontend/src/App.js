@@ -14,22 +14,16 @@ function App() {
        <Route path="/" element={<EmployeeLogin />} />      
     <Route path="/new-user-form" element={  < NewUserDetails/> } />
       <Route path="/new-user-form/docs" element={<NewUserDocsUpload />} />
-  
     <Route
         path="/hr-dashboard/*"
-        element={
-         
+        element={  
             <Dashboard />
-        
         }
-      /> 
-
+      />
       <Route
         path="/manager-dashboard"
         element={
-         
-            <ManagerDashboard />
-         
+            <ManagerDashboard /> 
         }
       /> 
 

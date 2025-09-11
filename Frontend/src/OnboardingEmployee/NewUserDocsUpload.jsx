@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { FaUpload, FaCheckCircle } from "react-icons/fa";
-
 import "./NewUserDocsUpload.css";
 import { useNavigate } from "react-router-dom"; 
 const acceptedFormats = [".pdf", ".doc", ".docx", ".jpg", ".png"];
@@ -84,47 +83,7 @@ export default function NewUserDocsUpload() {
     }
   };
 
-
-  // Submit API
- const handleSubmit = async () => {
-  if (!isFormValid()) {
-    alert("Please upload all required documents before submitting!");
-    return;
-  }
-
-  try {
-    for (const [docType, file] of Object.entries(files)) {
-      if (file) {
-        const formData = new FormData();
-        formData.append("employeeId", 1); // replace with actual employeeId from user context/session
-        formData.append("doc_type", docType);
-        formData.append("file", file);
-
-        const response = await fetch("http://127.0.0.1:8000/documents/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        const result = await response.json();
-        console.log(result);
-      }
-    }
-
-    alert("All documents submitted successfully!");
-  } catch (error) {
-    console.error(error);
-    alert("Error while submitting documents.");
-  }
-};
-
-
   const handleSubmitAll = async () => {
-  const employeeDetails = JSON.parse(localStorage.getItem("employeeDetails"));
-
-  if (!employeeDetails) {
-    alert("Employee details missing! Please go back and fill the form.");
-    return;
-  }
 
   if (!isFormValid()) {
     alert("Please upload all required documents before submitting!");
@@ -133,10 +92,6 @@ export default function NewUserDocsUpload() {
 
   const formData = new FormData();
 
-  Object.keys(employeeDetails).forEach((key) => {
-    formData.append(key, employeeDetails[key]);
-  });
-  
   Object.keys(files).forEach((key) => {
     if (files[key] instanceof File) {
       formData.append(key, files[key]);
@@ -150,25 +105,22 @@ export default function NewUserDocsUpload() {
     });
 
     if (response.ok) {
-      alert("Employee registered successfully!");
-      localStorage.removeItem("employeeDetails"); 
-
-      navigate("/");
+       alert("Documents submitted successfully!");
+     
     } else {
-      alert("Failed to submit details and documents.");
+      alert("Failed to submit documents.");
     }
   } catch (error) {
     console.error(error);
-    alert("Error while submitting employee registration.");
+    alert("Error while submitting employee documents.");
   }
 };
-
 
   
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/documents/`, {
+        const response = await fetch("http://127.0.0.1:8000/documents/upload/", {
           method: "GET",
           credentials: "include",
         });

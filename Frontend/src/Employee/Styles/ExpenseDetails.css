@@ -1,0 +1,192 @@
+
+.expense-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  background: #f3f4f6; /* light gray */
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Card */
+.expense-card {
+  background: #fff;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 800px;
+  box-sizing: border-box;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 20px;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: none;
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.2s;
+  color: rgb(7, 7, 7);
+}
+
+.tab.active {
+  border-bottom: 2px solid #2563eb;
+  font-weight: bold;
+  color:blue;
+  background: none;
+}
+
+/* Headings */
+form h2,
+.history h2 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+/* Form fields */
+form label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+form input,
+form select,
+form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+/* Form row */
+.form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.form-row > div {
+  flex: 1;
+  min-width: 150px;
+}
+
+/* Checkbox row */
+/* Checkbox row */
+/* Checkbox row */
+
+.checkbox-label{
+  display: inline-block;           
+  cursor: pointer;  
+  gap:10px;      
+  white-space: nowrap;  
+}
+
+/* Buttons */
+.button-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.btn-clear {
+  background: #e5e7eb;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+  color: black;
+}
+
+.btn-clear:hover {
+  background: #656666;
+}
+
+.btn-submit {
+  background: #2563eb;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+
+.btn-hide{
+    border-radius: 25px;;
+}
+
+/* Expense history */
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.history-item strong {
+  font-size: 14px;
+}
+
+.history-item span {
+  font-size: 14px;
+  color: #374151;
+}
+
+/* Status badge */
+.status {
+  padding: 14px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  background: #fef3c7; 
+  align-self: flex-start;
+  margin-left: 10px;
+}
+.status-approved {
+  color: rgb(255, 66, 66);   /* 🔹 Approved = red */
+}
+
+.status-rejected {
+  color: gray;  /* or another color for rejected */
+}
+
+.status-pending {
+  color: orange; /* Pending = orange */
+}
+
+@media (min-width: 600px) {
+  .history-row {
+    flex-direction: column;    /* stack items */
+    align-items: flex-start;   /* align left */
+    gap: 8px;
+  }
+
+  .history-actions {
+    width: 100%;               /* take full width */
+    justify-content: space-between;
+  }
+}
