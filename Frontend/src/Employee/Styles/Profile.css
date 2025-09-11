@@ -1,0 +1,27 @@
+.employee-profile {
+  max-width: 600px;
+  margin: auto;
+}
+
+.profile-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.profile-header {
+  margin-bottom: 1.5rem;
+}
+
+.profile-pic {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 1rem;
+}
+
+.profile-details p {
+  margin: 0.5rem 0;
+}

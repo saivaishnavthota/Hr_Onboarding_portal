@@ -1,0 +1,30 @@
+{
+  "EMP101": {
+    "documents": [
+      { "name": "Resume", "url": "/uploads/EMP101_resume.pdf", "uploaded": true },
+      { "name": "Offer Letter", "url": "/uploads/EMP101_offer.pdf", "uploaded": true },
+      { "name": "Compensation Letter", "url": "", "uploaded": false },
+      { "name": "Experience & Relieving Letter", "url": "", "uploaded": false },
+      { "name": "Pay Slips (3 months)", "url": "/uploads/EMP101_payslips.pdf", "uploaded": true },
+      { "name": "Form 16", "url": "", "uploaded": false },
+      { "name": "SSC Certificate", "url": "/uploads/EMP101_ssc.pdf", "uploaded": true },
+      { "name": "HSC Certificate", "url": "", "uploaded": false },
+      { "name": "HSC Marksheet", "url": "", "uploaded": false },
+      { "name": "Graduation Marksheet", "url": "/uploads/EMP101_grad.pdf", "uploaded": true },
+      { "name": "Latest Graduation Certificate", "url": "/uploads/EMP101_latest_grad.pdf", "uploaded": true },
+      { "name": "Post Graduation Marksheet", "url": "", "uploaded": false },
+      { "name": "Post Graduation Certificate", "url": "", "uploaded": false },
+      { "name": "Aadhar", "url": "/uploads/EMP101_aadhar.png", "uploaded": true },
+      { "name": "PAN", "url": "/uploads/EMP101_pan.png", "uploaded": true },
+      { "name": "Passport", "url": "", "uploaded": false }
+    ]
+  },
+  "EMP102": {
+    "documents": [
+      { "name": "Resume", "url": "", "uploaded": false },
+      { "name": "Offer Letter", "url": "", "uploaded": false },
+      { "name": "PAN", "url": "/uploads/EMP102_pan.png", "uploaded": true },
+      { "name": "Aadhar", "url": "/uploads/EMP102_aadhar.png", "uploaded": true }
+    ]
+  }
+}
