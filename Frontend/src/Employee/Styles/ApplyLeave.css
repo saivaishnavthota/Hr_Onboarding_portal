@@ -2,24 +2,24 @@
   max-width: 800px;
 }
 
+
+.leave-card {
+  margin-bottom: 15px;
+  width: 100%;
+}
+
 .leave-cards-wrapper {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  flex: 1 120 1px; 
+  display: block;   /* Stack vertically */
 }
 
 .leave-card {
-  min-width: 120px;
-  max-width: 250px;
-  /* flex: 1 1 120px; */
-  padding: 0.5rem 0.75rem;
-  font-size: 0.95rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05); 
-  margin-bottom: 1rem;
+  width: 100%;
+  margin-bottom: 15px;  /* Space between cards */
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
 }
+
 .leave-card.sick {
   background: #e3f2fd;   
   border: 2px solid #2196f3; 

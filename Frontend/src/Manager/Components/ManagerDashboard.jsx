@@ -5,6 +5,7 @@ import ManagerEmployees from "./ManagerEmployees";
 import ManagerApplyLeave from "./ManagerApplyLeave";
 import ManagerLeaveManagement from "./ManagerLeaveManagement";
 import { Link, Routes, Route, useNavigate } from "react-router-dom";
+import ManagerExpenseApproval from "./ManagerExpenseApproval";
 import UpdatePassword from "../../Employee/Components/UpdatePassword";
 import {
   faArrowLeft,
@@ -38,6 +39,7 @@ export default function ManagerDashboard() {
   { name: "Employees", icon: faUserFriends, path: "employees" },
   { name: "Apply Leave", icon: faPaperPlane, path: "apply-leave" },
   { name: "Leave Management", icon: faPaperPlane, path: "leave-manage" },
+   { name: "Expense Management", icon: faPaperPlane, path: "expense-manage" },
   { name: "Change Password", icon: faKey, path: "change-password" },
 ];
 
@@ -67,7 +69,7 @@ export default function ManagerDashboard() {
             {menuItems.map((item, idx) => (
               <div key={idx} className="menu-item">
                 <Link
-                  to={`/${item.path}`}
+                 to={`/manager-dashboard/${item.path}`}
                   className="menu-link"
                   onClick={() => window.scrollTo(0, 0)}
                 >
@@ -89,6 +91,7 @@ export default function ManagerDashboard() {
     <Route path="employees" element={<ManagerEmployees />} />
     {/* <Route path="apply-leave" element={<ManagerApplyLeave />} /> */}
     {/* <Route path="leave-manage" element={<ManagerLeaveManagement />} /> */}
+    <Route path="expense-manage" element={<ManagerExpenseApproval />} />
     <Route path="change-password" element={<UpdatePassword />} /> 
   </Routes>
         </main>

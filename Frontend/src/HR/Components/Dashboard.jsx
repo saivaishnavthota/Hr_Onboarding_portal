@@ -22,6 +22,7 @@ import {
 
 import "../Styles/Dashboard.css"
 import DocumentCollection from "./DocumentCollection";
+import HRExpenseApproval from "./HRExpenseApproval";
 import { FaDochub, FaPage4 } from "react-icons/fa";
 
 export default function Dashboard() {
@@ -46,6 +47,7 @@ export default function Dashboard() {
   { name: "Onboarding Documents", icon: faUpload, path: "onboard-docs" },
   { name: "Documents Collection", icon: faHandPaper , path: "collect-docs" },
   { name: "Leave Management", icon: faPaperPlane, path: "leave-manage" },
+  { name: "Expense Management", icon: faPaperPlane, path: "expense-approval" },
   { name: "Change Password", icon: faKey, path: "change-password" },
 ];
 
@@ -96,6 +98,7 @@ export default function Dashboard() {
     <Route path="onboard-docs" element={<OnboardingDocs />} />
     <Route path="collect-docs" element={<DocumentCollection />} />
     {/* <Route path="leave-manage" element={<LeaveManagement />} /> */}
+    <Route path="expense-approval" element={<HRExpenseApproval />} /> 
     <Route path="change-password" element={<UpdatePassword/>}/>
   </Routes>
         </main>

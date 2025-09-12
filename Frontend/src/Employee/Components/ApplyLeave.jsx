@@ -197,23 +197,38 @@ useEffect(() => {
       </div>
 
      
-      <div className="leave-cards-wrapper mb-4">
-        <div className="leave-card sick text-center">
-          <h5>Sick Leave</h5>
-          <p>Applied: {leaveBalances.Sick?.applied || 0}</p>
-          <p>Available: {leaveBalances.Sick?.available || 0}</p>
-        </div>
-        <div className="leave-card casual text-center">
-          <h5>Casual Leave</h5>
-          <p>Applied: {leaveBalances.Casual?.applied || 0}</p>
-          <p>Available: {leaveBalances.Casual?.available || 0}</p>
-        </div>
-        <div className="leave-card annual text-center">
-          <h5>Annual/Earned Leave</h5>
-          <p>Applied: {leaveBalances.Annual?.applied || 0}</p>
-          <p>Available: {leaveBalances.Annual?.available || 0}</p>
-        </div>
+     <div className="leave-cards-wrapper mb-4">
+  <div className="row mb-3">
+    <div className="col-12">
+      <div className="leave-card sick text-center">
+        <h5>Sick Leave</h5>
+        <p>Applied: {leaveBalances.Sick?.applied || 0}</p>
+        <p>Available: {leaveBalances.Sick?.available || 0}</p>
       </div>
+    </div>
+  </div>
+
+  <div className="row mb-3">
+    <div className="col-12">
+      <div className="leave-card casual text-center">
+        <h5>Casual Leave</h5>
+        <p>Applied: {leaveBalances.Casual?.applied || 0}</p>
+        <p>Available: {leaveBalances.Casual?.available || 0}</p>
+      </div>
+    </div>
+  </div>
+
+  <div className="row">
+    <div className="col-12">
+      <div className="leave-card annual text-center">
+        <h5>Annual/Earned Leave</h5>
+        <p>Applied: {leaveBalances.Annual?.applied || 0}</p>
+        <p>Available: {leaveBalances.Annual?.available || 0}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 
       <hr />
 

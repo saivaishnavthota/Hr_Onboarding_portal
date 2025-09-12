@@ -21,7 +21,7 @@ function App() {
         }
       />
       <Route
-        path="/manager-dashboard"
+        path="/manager-dashboard/*"
         element={
             <ManagerDashboard /> 
         }
@@ -36,7 +36,6 @@ function App() {
         }
       />
   </Routes>
-
   )
 }
 
