@@ -110,7 +110,7 @@ export default function EmployeeDashboard() {
             {/* <Route path="attendance" element={<EmployeeAttendance />} /> */}
             <Route path="upload-docs" element={<EmployeeUploadDocs />} />
             {/* <Route path="apply-leave" element={<ApplyLeave />} /> */}
-            <Route path="submit-expense" element={<ExpenseDetails/>} />
+           {/* <Route path="submit-expense" element={<ExpenseDetails/>} /> */}
             <Route path="change-password" element={<UpdatePassword />} />
             <Route path="profile" element={<Profile />} />
           </Routes>

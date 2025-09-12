@@ -86,7 +86,7 @@ export default function EmployeeUploadDocs() {
  
   // 🔹 Fetch employeeId (example: from localStorage, can be props or router param too)
 
-  const employeeId = localStorage.getItem("employeeId") || "26";
+  const employeeId = localStorage.getItem("employeeId") 
  
   const isFormValid = () => {
 

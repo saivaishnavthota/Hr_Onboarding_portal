@@ -13,6 +13,7 @@ class UserResponse(SQLModel):
     employeeId: int
     name: str
     role: str
+    email: str
     onboarding_status: bool
     message: Optional[str] = None
     access_token: Optional[str] = None
@@ -69,3 +70,11 @@ class EmployeeOnboardingResponse(SQLModel):
     status: str
     message: str
     employee_id: int
+
+class HrApproveRequest(SQLModel):
+    employee_id: int
+
+class UserHrAccept(BaseModel):
+    employee_id: int
+    o_status: bool
+    message: str

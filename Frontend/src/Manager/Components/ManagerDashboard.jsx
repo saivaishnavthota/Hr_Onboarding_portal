@@ -91,7 +91,7 @@ export default function ManagerDashboard() {
     <Route path="employees" element={<ManagerEmployees />} />
     {/* <Route path="apply-leave" element={<ManagerApplyLeave />} /> */}
     {/* <Route path="leave-manage" element={<ManagerLeaveManagement />} /> */}
-    <Route path="expense-manage" element={<ManagerExpenseApproval />} />
+    {/* <Route path="expense-manage" element={<ManagerExpenseApproval />} /> */}
     <Route path="change-password" element={<UpdatePassword />} /> 
   </Routes>
         </main>

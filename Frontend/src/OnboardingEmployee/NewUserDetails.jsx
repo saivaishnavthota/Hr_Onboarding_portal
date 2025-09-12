@@ -3,27 +3,32 @@ import "./NewUserDetails.css";
 import { useNavigate } from "react-router-dom";
 export default function NewUserDetails() {
   const navigate = useNavigate();
+  
+
+
+const user = JSON.parse(localStorage.getItem("user") || "{}");
+const employeeId = user.id;
+const email=user.email;
+
   const [employee, setEmployee] = useState({
-    fullName: "",
-    email: "",
+    employee_id:employeeId,
+    full_name: "",
+    personal_email: email,
     dob: "",
-    phone: "",
+    contact_no: "",
     doj: "",
     address: "",
-    graduationYear: "",
-    workExp: "",
-    contactName: "",
-    contactNumber: "",
-    relationship: "",
+    gender:"",
+    graduation_year: "",
+    work_experience_years: "",
+    emergency_contact_name: "",
+    emergency_contact_number: "",
+    emergency_contact_relation: "",
   });
 
-  // ✅ Load saved form data if exists
-  useEffect(() => {
-    const savedData = localStorage.getItem("employeeDetails");
-    if (savedData) {
-      setEmployee(JSON.parse(savedData));
-    }
-  }, []);
+  
+
+ 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -35,11 +40,14 @@ export default function NewUserDetails() {
 
   const handleSaveDraft = async () => {
     try {
-      await fetch("http://localhost:5000/api/employees/draft", {
+      await fetch("http://127.0.0.1:8000/users/onboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(employee),
       });
+
+      
+
       alert("Draft saved successfully!");
     } catch (err) {
       console.error(err);
@@ -50,18 +58,23 @@ export default function NewUserDetails() {
 const handleGoToDocs = async () => {
   try {
     // ✅ Send employee details to backend
-    const res = await fetch("http://localhost:5000/api/employees", {
+    console.log(localStorage.getItem("user"));
+
+    console.log("Sending employee payload:", employee);
+
+    const res = await fetch("http://127.0.0.1:8000/users/onboard", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(employee),
     });
 
     if (!res.ok) {
+       const errorData = await res.json();
       throw new Error("Failed to submit employee details");
     }
 
     const savedEmployee = await res.json();
-    localStorage.setItem("employeeDetails", JSON.stringify(savedEmployee));
+   
 
     // ✅ Navigate to docs upload page
     navigate("/new-user-form/docs");
@@ -81,14 +94,10 @@ const handleGoToDocs = async () => {
           <div className="form-grid">
             <div>
               <label>Full Name</label>
-              <input type="text" name="fullName" value={employee.fullName}
+              <input type="text" name="full_name" value={employee.full_name}
                onChange={handleChange} required/>
             </div>
-            <div>
-              <label>Email</label>
-              <input type="email" name="email" value={employee.email} 
-              onChange={handleChange} required />
-            </div>
+            
              <div>
               <label>Date Of Birth</label>
               <input type="date" name="dob" value={employee.dob} 
@@ -96,7 +105,7 @@ const handleGoToDocs = async () => {
             </div>
             <div>
               <label>Phone Number</label>
-              <input type="text" name="phone" value={employee.phone} 
+              <input type="text" name="contact_no" value={employee.contact_no} 
               onChange={handleChange} required />
             </div>
             <div>
@@ -122,27 +131,27 @@ const handleGoToDocs = async () => {
             </div>
             <div>
               <label>Latest Graduation Year</label>
-              <input type="number" name="graduationYear" value={employee.graduationYear} 
+              <input type="number" name="graduation_year" value={employee.graduation_year} 
               onChange={handleChange} required />
             </div>
             <div>
               <label id="star">Work Experience (years)</label>
-              <input type="number" name="workExp" value={employee.workExp} 
+              <input type="number" name="work_experience_years" value={employee.work_experience_years} 
               onChange={handleChange} />
             </div>
             <div>
               <label>Emergency Contact Name</label>
-              <input type="text" name="contactName" value={employee.contactName} 
+              <input type="text" name="emergency_contact_name" value={employee.emergency_contact_name} 
               onChange={handleChange} required />
             </div>
             <div>
               <label>Contact Number</label>
-              <input type="text" name="contactNumber" value={employee.contactNumber} 
+              <input type="text" name="emergency_contact_number" value={employee.emergency_contact_number} 
               onChange={handleChange} required />
             </div>
             <div>
               <label>Relationship</label>
-              <input type="text" name="relationship" value={employee.relationship} 
+              <input type="text" name="emergency_contact_relation" value={employee.emergency_contact_relation} 
               onChange={handleChange} required/>
             </div>
             <div className="full-width">

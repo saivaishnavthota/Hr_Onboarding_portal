@@ -1,17 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from models.user_model import User
-from schemas.user_schema import UserCreate, UserResponse, UserLogin, EmployeeOnboardingRequest,EmployeeOnboardingResponse,ResetPasswordRequest,EmployeeOnboardingRequest, ForgotPasswordRequest,Employee,AssignRequest,AssignResponse
+from schemas.user_schema import UserCreate,UserHrAccept,HrApproveRequest, UserResponse, UserLogin, EmployeeOnboardingRequest,EmployeeOnboardingResponse,ResetPasswordRequest,EmployeeOnboardingRequest, ForgotPasswordRequest,Employee,AssignRequest,AssignResponse
 from utils.email import send_login_email
 from auth import get_current_user, create_access_token, verify_password, role_required, hash_password
 from database import get_session
 from sqlalchemy.sql import text
 from models.employee_master_model import EmployeeMaster
 from schemas.employee_master_schema import EmployeeMasterCreate, EmployeeMasterResponse
+import logging
 
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # ----------------------------
 # Create Employee (HR only)
@@ -52,6 +56,25 @@ async def create_employee(
         message=f"Employee created successfully with ID: {new_user.id}"
     )
 
+@router.post("/hr/approve", response_model=UserHrAccept)
+async def hr_accept(data: HrApproveRequest, db: Session = Depends(get_db)):
+    # Find employee
+    user = db.query(users).filter(users.id == data.employee_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Update onboarding status
+    employee.o_status = True
+    db.commit()
+    db.refresh(employee)
+
+    return UserHrAccept(
+        employee_id=employee.id,
+        o_status=employee.o_status,
+        message="Employee onboarding approved by HR"
+    )
+
+
 @router.post("/login", response_model=UserResponse)
 async def login(user: UserLogin, session: Session = Depends(get_session)):
     email = user.email.strip().lower()
@@ -73,6 +96,7 @@ async def login(user: UserLogin, session: Session = Depends(get_session)):
         employeeId=db_user.id,
         name=db_user.name,
         role=db_user.role,
+        email=db_user.email,
         access_token=access_token,  
         onboarding_status=db_user.o_status,
         message=f"Welcome, {db_user.name}!"

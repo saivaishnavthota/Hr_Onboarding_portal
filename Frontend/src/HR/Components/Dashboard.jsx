@@ -98,7 +98,7 @@ export default function Dashboard() {
     <Route path="onboard-docs" element={<OnboardingDocs />} />
     <Route path="collect-docs" element={<DocumentCollection />} />
     {/* <Route path="leave-manage" element={<LeaveManagement />} /> */}
-    <Route path="expense-approval" element={<HRExpenseApproval />} /> 
+    {/* <Route path="expense-approval" element={<HRExpenseApproval />} />  */}
     <Route path="change-password" element={<UpdatePassword/>}/>
   </Routes>
         </main>
