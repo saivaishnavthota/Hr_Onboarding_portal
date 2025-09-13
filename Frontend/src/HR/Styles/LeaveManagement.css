@@ -20,7 +20,7 @@
 
 .tab-btn.active {
   color: #007bff; 
-}
+} 
 
 .tab-btn.active::after {
   content: "";

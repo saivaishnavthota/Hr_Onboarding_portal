@@ -10,11 +10,12 @@ import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import {
   faArrowLeft,
   faArrowRight,
-  faCalendarCheck,
+  faCalendarAlt,
   faPaperPlane,
   faUpload,
   faKey,
-  faCircleUser 
+  faCircleUser,
+  faCoins
 } from "@fortawesome/free-solid-svg-icons";
 import "../Styles/EmployeeDashboard.css"
 import ExpenseDetails from "./ExpenseDetails";
@@ -46,10 +47,10 @@ export default function EmployeeDashboard() {
 
 
   const menuItems = [
-    { name: "Add Attendance", icon: faCalendarCheck, path: "attendance" },
+    { name: "Add Attendance", icon: faCalendarAlt, path: "attendance" },
     { name: "Apply Leave", icon: faPaperPlane, path: "apply-leave" },
     { name: "Upload Documents", icon: faUpload, path: "upload-docs" },
-    { name: "Submit Expense", icon: faUpload, path: "submit-expense" },
+    { name: "Submit Expense", icon: faCoins, path: "submit-expense" },
     { name: "Set Password", icon: faKey, path: "change-password" },
   ];
 
@@ -107,9 +108,9 @@ export default function EmployeeDashboard() {
         <main className="content">
           <Routes>
             <Route index element={<h3>Welcome to Employee Dashboard</h3>} />
-            {/* <Route path="attendance" element={<EmployeeAttendance />} /> */}
+            <Route path="attendance" element={<EmployeeAttendance />}/> 
             <Route path="upload-docs" element={<EmployeeUploadDocs />} />
-            {/* <Route path="apply-leave" element={<ApplyLeave />} /> */}
+            <Route path="apply-leave" element={<ApplyLeave />} />
             <Route path="submit-expense" element={<ExpenseDetails/>} />
             <Route path="change-password" element={<UpdatePassword />} />
             <Route path="profile" element={<Profile />} />

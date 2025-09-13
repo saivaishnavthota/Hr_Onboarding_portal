@@ -11,19 +11,20 @@ import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import {
   faArrowLeft,
   faArrowRight,
-  faCalendarCheck,
+  faCalendarAlt,
   faPaperPlane,
   faUpload,
   faKey,
   faUser,
-  faUserFriends,
-  faHandPaper,
+  faReceipt,
+  faCoins,
+  faFileAlt,
+  faCircleUser
 } from "@fortawesome/free-solid-svg-icons";
 
 import "../Styles/Dashboard.css"
 import DocumentCollection from "./DocumentCollection";
 import HRExpenseApproval from "./HRExpenseApproval";
-import { FaDochub, FaPage4 } from "react-icons/fa";
 
 export default function Dashboard() {
   const [isOpen, setIsOpen] = useState(true);
@@ -40,14 +41,25 @@ export default function Dashboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+   const [username, setUsername] = useState("");
+
+  useEffect(() => {
+    
+    const storedUser = localStorage.getItem("username");
+    if (storedUser) {
+      setUsername(storedUser);
+    }
+  }, []);
+
+
  const menuItems = [
-  { name: "Create Employee", icon: faUser, path: "createemp" },
-  { name: "Employees", icon: faUserFriends, path: "employees" },
-  { name: "Employees Form", icon: faCalendarCheck, path: "employeesform" },
-  { name: "Onboarding Documents", icon: faUpload, path: "onboard-docs" },
-  { name: "Documents Collection", icon: faHandPaper , path: "collect-docs" },
+  { name: "Create Employee", icon: faUser, path: "create-employee" },
+  { name: "Employees Attendance", icon: faCalendarAlt , path: "employee-attendance" },
+  { name: "Employees Form", icon: faReceipt, path: "employees-form" },
+  { name: "Onboarded Employees", icon: faUpload, path: "onboard-employees" },
+  { name: "Documents Collection", icon: faFileAlt , path: "collect-docs" },
   { name: "Leave Management", icon: faPaperPlane, path: "leave-manage" },
-  { name: "Expense Management", icon: faPaperPlane, path: "expense-approval" },
+  { name: "Expense Management", icon: faCoins, path: "expense-approval" },
   { name: "Change Password", icon: faKey, path: "change-password" },
 ];
 
@@ -60,6 +72,17 @@ export default function Dashboard() {
           <img src={Logo} alt="Company Logo" className="logo-img" />
           <h2 className="logo-text">HR Dashboard</h2>
         </div>
+         <div className="profile"  style={{
+                        display: "flex",
+                        alignItems: "center",  
+                        gap: "8px",
+                        height: "100%",   
+                      }}>
+                           <FontAwesomeIcon icon={faCircleUser} size="2x" />
+                             <span>
+                            {username || "Guest"}
+                            </span>
+                        </div>
       </header>
 
       <div className="main">
@@ -92,12 +115,12 @@ export default function Dashboard() {
         <main className="content">
           <Routes>
     <Route index element={<h3>Welcome to HR Dashboard</h3>} />
-    <Route path="createemp" element={<CreateEmployee />} />
-  {/* <Route path="employees" element={<Employees />} /> */}
-    <Route path="employeesform" element={<EmployeeForm />} />
-    <Route path="onboard-docs" element={<OnboardingDocs />} />
+    <Route path="create-employee" element={<CreateEmployee />} />
+    <Route path="employee-attendance" element={<Employees />} />
+    <Route path="employees-form" element={<EmployeeForm />} />
+    <Route path="onboard-employees" element={<OnboardingDocs />} />
     <Route path="collect-docs" element={<DocumentCollection />} />
-    {/* <Route path="leave-manage" element={<LeaveManagement />} /> */}
+    <Route path="leave-manage" element={<LeaveManagement />} />
     <Route path="expense-approval" element={<HRExpenseApproval />} /> 
     <Route path="change-password" element={<UpdatePassword/>}/>
   </Routes>

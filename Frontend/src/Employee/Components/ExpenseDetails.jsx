@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "../Styles/ExpenseDetails.css";
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 export default function ExpenseDetails() {
   const [activeTab, setActiveTab] = useState("submit");
   const [formData, setFormData] = useState({
@@ -15,26 +16,28 @@ export default function ExpenseDetails() {
   });
   const [expenses, setExpenses] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
+  const [toast, setToast] = useState({ message: null, isError: false });
 
-  // Get current employee ID
   const user = JSON.parse(localStorage.getItem("user"));
   const employeeId = user?.id;
 
-  // Fetch history from backend
+  // Toast helper
+  const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+  };
+
   useEffect(() => {
     if (activeTab === "history") {
       axios
         .get(`http://localhost:5000/api/expenses?employeeId=${employeeId}`)
-        .then((res) => {
-          setExpenses(res.data);
-        })
+        .then((res) => setExpenses(res.data))
         .catch((err) => {
           console.error("Error fetching expenses:", err);
+          showToast("Failed to fetch expense history.", true);
         });
     }
   }, [activeTab, employeeId]);
 
-  // Handle form changes
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
     setFormData((prev) => ({
@@ -43,7 +46,6 @@ export default function ExpenseDetails() {
     }));
   };
 
-  // Submit expense
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -51,17 +53,14 @@ export default function ExpenseDetails() {
       Object.keys(formData).forEach((key) => {
         data.append(key, formData[key]);
       });
-
-      // Add employee ID
       data.append("employeeId", employeeId);
 
       await axios.post("http://localhost:5000/api/expenses", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      alert("Expense submitted!");
+      showToast("Expense submitted successfully!", false);
 
-      // Reset form
       setFormData({
         category: "",
         amount: "",
@@ -72,14 +71,13 @@ export default function ExpenseDetails() {
         attachment: null,
       });
 
-      // Redirect to history tab
       setActiveTab("history");
     } catch (err) {
       console.error("Error submitting expense:", err);
+      showToast("Failed to submit expense.", true);
     }
   };
 
-  // Clear form
   const handleClear = () => {
     setFormData({
       category: "",
@@ -96,8 +94,26 @@ export default function ExpenseDetails() {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  // Auto-hide toast
+  useEffect(() => {
+    if (toast.message) {
+      const timer = setTimeout(() => setToast({ message: null, isError: false }), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   return (
     <div className="expense-container">
+      {toast.message && (
+        <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+            <FontAwesomeIcon
+                icon={toast.isError ? faTimesCircle : faCheckCircle}
+                className="me-2"
+              />
+          {toast.message}
+        </div>
+      )}
+
       <div className="expense-card">
         {/* Tabs */}
         <div className="tabs">
@@ -119,14 +135,8 @@ export default function ExpenseDetails() {
         {activeTab === "submit" && (
           <form onSubmit={handleSubmit}>
             <h2>Expense Request</h2>
-
             <label>Expense Category</label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-            >
+            <select name="category" value={formData.category} onChange={handleChange} required>
               <option value="">Select Category</option>
               <option value="Travel">Travel</option>
               <option value="Food">Food</option>
@@ -141,22 +151,11 @@ export default function ExpenseDetails() {
             <div className="form-row">
               <div>
                 <label>Amount</label>
-                <input
-                  type="number"
-                  name="amount"
-                  value={formData.amount}
-                  onChange={handleChange}
-                  required
-                />
+                <input type="number" name="amount" value={formData.amount} onChange={handleChange} required />
               </div>
               <div>
                 <label>Currency</label>
-                <select
-                  name="currency"
-                  value={formData.currency}
-                  onChange={handleChange}
-                  required
-                >
+                <select name="currency" value={formData.currency} onChange={handleChange} required>
                   <option value="">Select Currency</option>
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
@@ -166,11 +165,7 @@ export default function ExpenseDetails() {
             </div>
 
             <label>Description</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-            />
+            <textarea name="description" value={formData.description} onChange={handleChange} />
 
             <label>Expense Date</label>
             <input
@@ -183,16 +178,11 @@ export default function ExpenseDetails() {
             />
 
             <label className="checkbox-label">
-              <input
-                type="checkbox"
-                name="taxIncluded"
-                checked={formData.taxIncluded}
-                onChange={handleChange}
-              />
+              <input type="checkbox" name="taxIncluded" checked={formData.taxIncluded} onChange={handleChange} />
               Tax is included in the amount
             </label>
 
-            <label>Attachment (supported formats: PDF, JPG, PNG)</label>
+            <label>Attachment (PDF, JPG, PNG)</label>
             <input type="file" name="attachment" onChange={handleChange} />
 
             <div className="button-row">
@@ -210,11 +200,7 @@ export default function ExpenseDetails() {
         {activeTab === "history" && (
           <div className="history">
             <h2>Expense History</h2>
-            <button
-              className="btn-clear"
-              onClick={() => setActiveTab("submit")}
-              style={{ marginBottom: "16px" }}
-            >
+            <button className="btn-clear" onClick={() => setActiveTab("submit")} style={{ marginBottom: "16px" }}>
               ← Back
             </button>
             <ul className="history-list">
@@ -222,23 +208,20 @@ export default function ExpenseDetails() {
                 <li key={exp.id} className="history-item">
                   <strong>{exp.category}</strong>
                   <div>
-                    <button
-                      className="btn-hide"
-                      onClick={() => toggleExpand(exp.id)}
-                    >
+                    <button className="btn-hide" onClick={() => toggleExpand(exp.id)}>
                       {expandedId === exp.id ? "Hide" : "View"}
                     </button>
                     <span
-  className={`status ${
-    exp.status === "Approved"
-      ? "status-approved"
-      : exp.status === "Rejected"
-      ? "status-rejected"
-      : "status-pending"
-  }`}
->
-  {exp.status || "Pending Manager Approval"}
-</span>
+                      className={`status ${
+                        exp.status === "Approved"
+                          ? "status-approved"
+                          : exp.status === "Rejected"
+                          ? "status-rejected"
+                          : "status-pending"
+                      }`}
+                    >
+                      {exp.status || "Pending Manager Approval"}
+                    </span>
                   </div>
                   {expandedId === exp.id && (
                     <div style={{ marginTop: "10px" }}>
@@ -252,16 +235,11 @@ export default function ExpenseDetails() {
                         <strong>Date:</strong> {exp.date}
                       </p>
                       <p>
-                        <strong>Tax Included:</strong>{" "}
-                        {exp.taxIncluded ? "Yes" : "No"}
+                        <strong>Tax Included:</strong> {exp.taxIncluded ? "Yes" : "No"}
                       </p>
                       {exp.attachment && (
                         <p>
-                          <a
-                            href={exp.attachment}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
+                          <a href={exp.attachment} target="_blank" rel="noreferrer">
                             View Attachment
                           </a>
                         </p>

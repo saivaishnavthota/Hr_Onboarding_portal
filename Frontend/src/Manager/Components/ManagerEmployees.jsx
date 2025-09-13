@@ -1,42 +1,67 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 
 export default function ManagerEmployees() {
   const [employees, setEmployees] = useState([]);
   const [editRow, setEditRow] = useState(null);
-  const [projectInput, setProjectInput] = useState({}); 
+  const [projectInput, setProjectInput] = useState({});
+  const [toast, setToast] = useState({ message: null, isError: false });
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
-  const fetchEmployees = () => {
-    fetch(`${API_BASE_URL}/employees`)
-      .then((res) => res.json())
-      .then((data) => setEmployees(data))
-      .catch((err) => console.error("Error fetching employees:", err));
+  const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+    setTimeout(() => setToast({ message: null, isError: false }), 3000);
+  };
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/employees`);
+      setEmployees(res.data);
+      showToast("Employees loaded successfully!");
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+      showToast("Failed to fetch employees", true);
+    }
   };
 
   useEffect(() => {
     fetchEmployees();
   }, []);
 
-  const submitProject = (empId) => {
+  const submitProject = async (empId) => {
     const project = projectInput[empId];
-    if (!project) return;
+    if (!project) {
+      showToast("Project field cannot be empty", true);
+      return;
+    }
 
-    fetch(`/${empId}/projects`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ project }),
-    })
-      .then((res) => res.json())
-      .then(() => {
-        fetchEmployees(); 
-        setProjectInput((prev) => ({ ...prev, [empId]: "" })); 
-        setEditRow(null);
-      })
-      .catch((err) => console.error("Error submitting project:", err));
+    try {
+      await axios.post(`${API_BASE_URL}/employees/${empId}/projects`, { project });
+      showToast("Project added successfully!");
+      fetchEmployees();
+      setProjectInput((prev) => ({ ...prev, [empId]: "" }));
+      setEditRow(null);
+    } catch (err) {
+      console.error("Error submitting project:", err);
+      showToast("Failed to submit project", true);
+    }
   };
 
   return (
     <div className="manager-employees">
+      {/* Toast */}
+      {toast.message && (
+        <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+          <FontAwesomeIcon
+            icon={toast.isError ? faTimesCircle : faCheckCircle}
+            className="me-2"
+          />
+          {toast.message}
+        </div>
+      )}
+
       <div className="table-responsive m-5">
         <table className="table table-sm table-bordered table-striped text-center small-table-text">
           <thead className="thead-dark">
