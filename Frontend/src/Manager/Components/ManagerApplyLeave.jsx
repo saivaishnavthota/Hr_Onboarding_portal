@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
+import axios from "axios";
 import "../Styles/ManagerApplyLeave.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 
 export default function ManagerApplyLeave() {
   const employeeId = 1; // Replace with logged-in employee ID
@@ -7,36 +10,40 @@ export default function ManagerApplyLeave() {
 
   const [leaveBalances, setLeaveBalances] = useState({});
   const [leaveHistory, setLeaveHistory] = useState([]);
-
   const [leaveType, setLeaveType] = useState("");
   const [reason, setReason] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [totalDays, setTotalDays] = useState(0);
-
   const [activeTab, setActiveTab] = useState("apply");
+  const [toast, setToast] = useState({ message: null, isError: false });
 
-  const fetchData = () => {
-    fetch(`http://localhost:5000/api/leave-balances/${employeeId}`)
-      .then((res) => res.json())
-      .then((data) => setLeaveBalances(data))
-      .catch((err) => console.error("Error fetching balances:", err));
-
-    fetch(`http://localhost:5000/api/leaves/${employeeId}`)
-      .then((res) => res.json())
-      .then((data) => setLeaveHistory(data))
-      .catch((err) => console.error("Error fetching history:", err));
+  const fetchData = async () => {
+    try {
+      const [balancesRes, historyRes] = await Promise.all([
+        axios.get(`http://localhost:5000/api/leave-balances/${employeeId}`),
+        axios.get(`http://localhost:5000/api/leaves/${employeeId}`)
+      ]);
+      setLeaveBalances(balancesRes.data);
+      setLeaveHistory(historyRes.data);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      showToast("Failed to fetch leave data", true);
+    }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
- 
+  const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+    setTimeout(() => setToast({ message: null, isError: false }), 3000);
+  };
+
   const handleScrollToForm = () => {
     formSectionRef.current.scrollIntoView({ behavior: "smooth" });
   };
-
 
   const calculateDays = (start, end) => {
     if (start && end) {
@@ -53,67 +60,48 @@ export default function ManagerApplyLeave() {
     }
   };
 
-  
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  if (!leaveType) {
-    alert("Please select a leave type");
-    return;
-  }
-  if (totalDays <= 0) {
-    alert("Please select valid start and end dates");
-    return;
-  }
-  if (!reason.trim()) {
-    alert("Please provide a reason");
-    return;
-  }
+    if (!leaveType) return showToast("Please select a leave type", true);
+    if (totalDays <= 0) return showToast("Please select valid start and end dates", true);
+    if (!reason.trim()) return showToast("Please provide a reason", true);
 
-  try {
-    const token = localStorage.getItem("token"); 
-    if (!token) {
-      alert("You are not logged in!");
-      return;
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return showToast("You are not logged in!", true);
+
+      const res = await axios.post(
+        "https://c369d458db4e.ngrok-free.app/apply_leave",
+        {
+          leave_type: leaveType,
+          start_date: startDate,
+          end_date: endDate,
+          reason
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data.status === "error" || res.data.error) {
+        showToast(res.data.message || res.data.error || "Error applying leave", true);
+      } else {
+        showToast(res.data.message || "Leave applied successfully!", false);
+
+        // Reset form
+        setLeaveType("");
+        setReason("");
+        setStartDate("");
+        setEndDate("");
+        setTotalDays(0);
+        setActiveTab("history");
+
+        fetchData();
+      }
+    } catch (err) {
+      console.error("Error applying leave:", err);
+      showToast("Failed to apply leave. Check console for details.", true);
     }
-
-    const response = await fetch("https://c369d458db4e.ngrok-free.app/apply_leave", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}` 
-      },
-      body: JSON.stringify({
-        leave_type: leaveType,
-        start_date: startDate,
-        end_date: endDate,
-        reason
-      }),
-    });
-
-
-    const data = await response.json();
-
-    if (data.status === "error" || data.error) {
-      alert(data.message || data.error || "Error applying leave");
-    } else {
-      alert(data.message || "Leave applied successfully!");
-
-     
-      setLeaveType("");
-      setReason("");
-      setStartDate("");
-      setEndDate("");
-      setTotalDays(0);
-      setActiveTab("history");
-
-      fetchData();
-    }
-  } catch (err) {
-    console.error("Error applying leave:", err);
-    alert("Failed to apply leave. Check console for details.");
-  }
-};
+  };
 
   const totalAvailable =
     (leaveBalances.Sick?.available || 0) +
@@ -127,9 +115,19 @@ const handleSubmit = async (e) => {
 
   return (
     <div className="apply-leave-container container py-4">
+      {/* Toast */}
+      {toast.message && (
+        <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+          <FontAwesomeIcon
+            icon={toast.isError ? faTimesCircle : faCheckCircle}
+            className="me-2"
+          />
+          {toast.message}
+        </div>
+      )}
+
       <h3 className="text-center mb-4">Apply for Leave</h3>
 
-     
       <div className="row text-center mb-4">
         <div className="col-md-6">
           <div className="leave-summary">
@@ -151,7 +149,6 @@ const handleSubmit = async (e) => {
         </button>
       </div>
 
-    
       <div className="leave-cards-wrapper mb-4">
         <div className="leave-card sick text-center">
           <h5>Sick Leave</h5>
@@ -172,7 +169,6 @@ const handleSubmit = async (e) => {
 
       <hr />
 
-   
       <div ref={formSectionRef} className="form-section mt-4">
         <ul className="nav nav-tabs">
           <li className="nav-item">
@@ -194,7 +190,6 @@ const handleSubmit = async (e) => {
         </ul>
 
         <div className="tab-content p-3 border border-top-0">
-        
           {activeTab === "apply" && (
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
@@ -241,12 +236,11 @@ const handleSubmit = async (e) => {
               </div>
 
               <div className="mb-3">
-  <label>Total Days for Leave</label>
-  <p className="form-control">
-    {totalDays > 0 ? totalDays : "Select Start and End Date"}
-  </p>
-</div>
-
+                <label>Total Days for Leave</label>
+                <p className="form-control">
+                  {totalDays > 0 ? totalDays : "Select Start and End Date"}
+                </p>
+              </div>
 
               <div className="mb-3">
                 <label>Reason</label>
@@ -265,7 +259,6 @@ const handleSubmit = async (e) => {
             </form>
           )}
 
-        
           {activeTab === "history" && (
             <div className="leave-history">
               {leaveHistory.length === 0 ? (

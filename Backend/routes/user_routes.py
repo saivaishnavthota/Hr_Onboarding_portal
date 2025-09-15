@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from models.user_model import User
-from schemas.user_schema import UserCreate,UserHrAccept,HrApproveRequest, UserResponse, UserLogin, EmployeeOnboardingRequest,EmployeeOnboardingResponse,ResetPasswordRequest,EmployeeOnboardingRequest, ForgotPasswordRequest,Employee,AssignRequest,AssignResponse
-from utils.email import send_login_email
+from schemas.user_schema import UserCreate,ApproveDocsRequest,UsercreateResponse,UserHrAccept,HrApproveRequest, UserResponse, UserLogin, EmployeeOnboardingRequest,EmployeeOnboardingResponse,ResetPasswordRequest,EmployeeOnboardingRequest, ForgotPasswordRequest,Employee,AssignRequest,AssignResponse
+from utils.email import send_login_email,send_onboarding_email
 from auth import get_current_user, create_access_token, verify_password, role_required, hash_password
 from database import get_session
 from sqlalchemy.sql import text
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 async def create_employee(
     user: UserCreate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(role_required("HR"))
+    current_user: User = Depends(get_session)
 ):
     # Check if email exists
     db_user = session.exec(select(User).where(User.email == user.email)).first()
@@ -32,8 +32,8 @@ async def create_employee(
         raise HTTPException(status_code=400, detail="Email already registered")
 
     # Call stored procedure correctly
-    query = text("SELECT add_employee(:name, :email)")\
-        .bindparams(name=user.name, email=user.email)
+    query = text("SELECT add_employee(:name, :email ,:role,:type)")\
+        .bindparams(name=user.name, email=user.email,role=user.role,type=user.type)
     temp_password = session.exec(query).scalar()
 
     session.commit() 
@@ -49,7 +49,7 @@ async def create_employee(
     # Send login email
     await send_login_email(user.email, temp_password)
 
-    return UserResponse(
+    return UsercreateResponse(
         employeeId=new_user.id,
         name=new_user.name,
         
@@ -57,7 +57,7 @@ async def create_employee(
     )
 
 @router.post("/hr/approve", response_model=UserHrAccept)
-async def hr_accept(data: HrApproveRequest, db: Session = Depends(get_db)):
+async def hr_accept(data: HrApproveRequest, db: Session = Depends(get_session)):
     # Find employee
     user = db.query(users).filter(users.id == data.employee_id).first()
     if not user:
@@ -462,3 +462,25 @@ async def update_employee_details(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
         )
+
+    
+
+# ✅ API Endpoint
+@router.post("/approve-documents")
+def approve_documents(
+    request: ApproveDocsRequest,
+    session: Session = Depends(get_session)
+):
+    employee = session.query(User).filter(User.id == request.employeeId).first()
+
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Update onboarding status
+    employee.o_status = True
+    session.commit()
+
+    # Send email
+    send_onboarding_email(employee.email, employee.name)
+
+    return {"message": f"Onboarding completed for {employee.name}", "employeeId": employee.id}

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import "../Styles/EmployeeAttendence.css";
+import "../../Employee/Styles/EmployeeAttendence.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 
-export default function EmployeeAttendence() {
+export default function EmployeeAttendance() {
   const [activeTab, setActiveTab] = useState("weekly");
   const [attendance, setAttendance] = useState({});
   const [toast, setToast] = useState({ message: null, isError: false });
@@ -113,7 +113,7 @@ export default function EmployeeAttendence() {
         </div>
       )}
 
-      <h3 className="text-center mb-4">Employee Attendance</h3>
+      <h3 className="text-center mb-4">Manager Attendance</h3>
 
       <ul className="nav nav-tabs">
         <li className="nav-item">

@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import "../../Manager/Styles/ManagerExpenseApproval.css";
 
 export default function HRExpenseApproval() {
   const [expenses, setExpenses] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
-  const [editingStatus, setEditingStatus] = useState({}); // store selected status
+  const [editingStatus, setEditingStatus] = useState({});
+  const [toast, setToast] = useState({ message: "", isError: false });
 
   // Fetch all expenses
   useEffect(() => {
@@ -18,6 +21,8 @@ export default function HRExpenseApproval() {
       setExpenses(res.data);
     } catch (err) {
       console.error("Error fetching expenses:", err);
+      setToast({ message: "Failed to fetch expenses", isError: true });
+      setTimeout(() => setToast({ message: "", isError: false }), 3000);
     }
   };
 
@@ -37,6 +42,9 @@ export default function HRExpenseApproval() {
         status: editingStatus[id],
       });
       fetchExpenses();
+      setToast({ message: "Status updated successfully!", isError: false });
+      setTimeout(() => setToast({ message: "", isError: false }), 3000);
+
       setEditingStatus((prev) => {
         const updated = { ...prev };
         delete updated[id];
@@ -44,12 +52,25 @@ export default function HRExpenseApproval() {
       });
     } catch (err) {
       console.error("Error saving status:", err);
+      setToast({ message: "Failed to update status", isError: true });
+      setTimeout(() => setToast({ message: "", isError: false }), 3000);
     }
   };
 
   return (
     <div className="manager-container">
       <h4 className="heading">HR Expense Approvals</h4>
+
+      {/* Toast */}
+      {toast.message && (
+        <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+          <FontAwesomeIcon
+            icon={toast.isError ? faTimesCircle : faCheckCircle}
+            className="me-2"
+          />
+          {toast.message}
+        </div>
+      )}
 
       <table className="manager-table">
         <thead>
@@ -69,10 +90,13 @@ export default function HRExpenseApproval() {
             return (
               <React.Fragment key={exp.id}>
                 <tr>
-                  <td>{exp.employeeName}
-                  <span> <small>
-                  {exp.employeeEmail} </small></span></td> 
-
+                  <td>
+                    {exp.employeeName}
+                    <span>
+                      {" "}
+                      <small>{exp.employeeEmail}</small>
+                    </span>
+                  </td>
                   <td>{exp.category}</td>
                   <td>
                     {exp.amount} {exp.currency}
@@ -104,14 +128,13 @@ export default function HRExpenseApproval() {
                     <button
                       className="btn-save"
                       onClick={() => saveStatus(exp.id)}
-                      disabled={selectedStatus === currentStatus} // ✅ disable if unchanged
+                      disabled={selectedStatus === currentStatus}
                     >
                       Save
                     </button>
                   </td>
                 </tr>
 
-                {/* Expanded row */}
                 {expandedId === exp.id && (
                   <tr className="expand-row">
                     <td colSpan="6">

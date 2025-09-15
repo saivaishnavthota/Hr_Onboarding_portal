@@ -1,5 +1,4 @@
 [
-  { "id": 201, "name": "Priya Sharma" },
-  { "id": 202, "name": "Aditi Mehta" },
-  { "id": 203, "name": "Rahul Singh" }
+  { "id": 1, "name": "Ravi Kumar", "email": "ravi@example.com", "type": "Full-Time", "status": "Pending" },
+  { "id": 2, "name": "Sneha Reddy", "email": "sneha@example.com", "type": "Intern", "status": "Approved" }
 ]

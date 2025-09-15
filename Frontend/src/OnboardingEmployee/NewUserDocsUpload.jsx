@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { FaUpload, FaCheckCircle } from "react-icons/fa";
+import axios from "axios";
 import "./NewUserDocsUpload.css";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
+
 const acceptedFormats = [".pdf", ".doc", ".docx", ".jpg", ".png"];
 
 
@@ -80,117 +82,65 @@ export default function NewUserDocsUpload() {
   const [files, setFiles] = useState({});
   const [previewUrls, setPreviewUrls] = useState({});
   const [openSection, setOpenSection] = useState(null);
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
-    const navigate = useNavigate(); 
+  const [toast, setToast] = useState({ message: null, isError: false });
+  const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
-  
   const isFormValid = () => {
     for (const [, section] of Object.entries(sections)) {
       for (const field of section.fields) {
-        if (field.required && !files[field.name]) {
-          return false;
-        }
+        if (field.required && !files[field.name]) return false;
       }
     }
     return true;
   };
 
- 
+  const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+    setTimeout(() => setToast({ message: null, isError: false }), 3000);
+  };
+
   const handleDraft = async () => {
     const formData = new FormData();
 
      formData.append("employeeId", employeeId);
      
     Object.keys(files).forEach((key) => {
-      if (files[key] instanceof File) {
-        formData.append(key, files[key]);
-      }
+      if (files[key] instanceof File) formData.append(key, files[key]);
     });
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/documents/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        alert("Draft saved successfully!");
-      } else {
-        alert("Failed to save draft.");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Error while saving draft.");
+      await axios.post("http://127.0.0.1:8000/documents/upload", formData);
+      showToast("Draft saved successfully!");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to save draft", true);
     }
   };
 
   const handleSubmitAll = async () => {
-
-  if (!isFormValid()) {
-    alert("Please upload all required documents before submitting!");
-    return;
-  }
-
-  const formData = new FormData();
-    formData.append("employeeId", employeeId); 
-
-  Object.keys(files).forEach((key) => {
-    if (files[key] instanceof File) {
-      formData.append(key, files[key]);
+    if (!isFormValid()) {
+      showToast("Please upload all required documents before submitting!", true);
+      return;
     }
-  });
 
-  try {
-    const response = await fetch("http://127.0.0.1:8000/documents/upload", {
-      method: "POST",
-      body: formData,
+    setSubmitting(true);
+    const formData = new FormData();
+    formData.append("employeeId", employeeId);
+    Object.keys(files).forEach((key) => {
+      if (files[key] instanceof File) formData.append(key, files[key]);
     });
 
-    if (response.ok) {
-       alert("Documents submitted successfully!");
-     
-    } else {
-      alert("Failed to submit documents.");
+    try {
+      await axios.post("http://127.0.0.1:8000/documents/upload", formData);
+      showToast("Documents submitted successfully!");
+    } catch (err) {
+      console.error(err);
+      showToast("Error while submitting employee documents.", true);
+      setSubmitting(false);
     }
-  } catch (error) {
-    console.error(error);
-    alert("Error while submitting employee documents.");
-  }
-};
+  };
 
-  
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const response = await fetch(`http://127.0.0.1:8000/documents/${employeeId}`, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const fetchedFiles = {};
-          const fetchedPreviews = {};
-
-          Object.keys(data).forEach((field) => {
-            if (data[field]) {
-              fetchedPreviews[field] = data[field];
-              fetchedFiles[field] = { name: data[field].split("/").pop(), url: data[field] };
-            }
-          });
-
-          setFiles(fetchedFiles);
-          setPreviewUrls(fetchedPreviews);
-        }
-      } catch (err) {
-        console.error("Error fetching uploaded docs:", err);
-      }
-    }
-
-    fetchData();
-  }, [API_BASE_URL]);
-
- 
   const handleFileChange = (e, field) => {
     const file = e.target.files[0];
     if (file) {
@@ -199,15 +149,58 @@ export default function NewUserDocsUpload() {
     }
   };
 
-
   const getUploadedCount = (section) =>
     section.fields.filter((f) => files[f.name]).length;
 
+  // ✅ Fetch previously uploaded files
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const { data } = await axios.get("http://127.0.0.1:8000/documents/upload/", {
+          withCredentials: true,
+        });
+        const fetchedFiles = {};
+        const fetchedPreviews = {};
+        Object.keys(data).forEach((field) => {
+          if (data[field]) {
+            fetchedPreviews[field] = data[field];
+            fetchedFiles[field] = { name: data[field].split("/").pop(), url: data[field] };
+          }
+        });
+        setFiles(fetchedFiles);
+        setPreviewUrls(fetchedPreviews);
+      } catch (err) {
+        console.error("Error fetching uploaded docs:", err);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (submitting) {
+    return (
+      <div className="thank-you-container">
+        <div className="thank-you-box">
+          <div className="spinner"></div>
+          <h2>Thank You for Completing Onboarding Process</h2>
+          <p>We will get back to you soon...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="upload-container">
+      {toast.message && (
+        <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+          {toast.message}
+        </div>
+      )}
+
       <div className="upload-box">
         <h4>Documents Upload</h4>
-        <h6 id="text"> <span className="required">*</span> marked documents are mandatory to upload</h6>
+        <h6 id="text">
+          <span className="required">*</span> marked documents are mandatory
+        </h6>
 
         {Object.entries(sections).map(([key, section]) => (
           <div key={key} className="section">
@@ -231,8 +224,7 @@ export default function NewUserDocsUpload() {
                     onClick={() => document.getElementById(field.name).click()}
                   >
                     <div className="upload-label">
-                      {field.label}{" "}
-                      {field.required && <span className="required">*</span>}
+                      {field.label} {field.required && <span className="required">*</span>}
                     </div>
 
                     <div className="upload-status">
@@ -253,6 +245,7 @@ export default function NewUserDocsUpload() {
                       accept={acceptedFormats.join(",")}
                       style={{ display: "none" }}
                       onChange={(e) => handleFileChange(e, field.name)}
+                      disabled={submitting}
                     />
 
                     {files[field.name] && (
@@ -277,17 +270,16 @@ export default function NewUserDocsUpload() {
         ))}
 
         <div className="button-group">
-  <button type="button" className="btn back" onClick={() => navigate("/new-user-form")}>
-    ⬅ Back
-  </button>
-  <button type="button" className="btn draft" onClick={handleDraft}>
-    Save Draft
-  </button>
-  <button type="button" className="btn submit" onClick={handleSubmitAll}>
-    Submit All
-  </button>
-</div>
-
+          <button type="button" className="btn back" onClick={() => navigate("/new-user-form")} disabled={submitting}>
+            ⬅ Back
+          </button>
+          <button type="button" className="btn draft" onClick={handleDraft} disabled={submitting}>
+            Save Draft
+          </button>
+          <button type="button" className="btn submit" onClick={handleSubmitAll} disabled={submitting}>
+            Submit All
+          </button>
+        </div>
       </div>
     </div>
   );

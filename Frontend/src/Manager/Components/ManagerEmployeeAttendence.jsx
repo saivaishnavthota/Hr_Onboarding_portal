@@ -3,10 +3,10 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import { toast, ToastContainer } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 
-export default function Employees() {
+export default function ManagerEmployeeAttendence() {
   const [month, setMonth] = useState("09");
   const [year, setYear] = useState("2025");
   const [search, setSearch] = useState("");
@@ -14,20 +14,24 @@ export default function Employees() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState({ message: null, isError: false });
 
-  const API_BASE_URL = "http://127.0.0.1:8000";
+  const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+    setTimeout(() => setToast({ message: null, isError: false }), 3000);
+  };
 
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${API_BASE_URL}/users/employees`);
+        const res = await axios.get("http://127.0.0.1:8000/users/employees");
         setEmployees(res.data);
-        toast.success("Employees loaded successfully!");
+        showToast("Employees loaded successfully!");
       } catch (err) {
         console.error("Error fetching employees:", err);
         setError("Failed to load employees");
-        toast.error("Failed to load employees");
+        showToast("Failed to load employees", true);
       } finally {
         setLoading(false);
       }
@@ -36,7 +40,6 @@ export default function Employees() {
     fetchEmployees();
   }, []);
 
-  // Filter employees
   const filteredEmployees = employees.filter((emp) => {
     const matchesSearch =
       emp.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -45,60 +48,58 @@ export default function Employees() {
     return matchesSearch && matchesDept;
   });
 
-  // Summary stats
   const totalEmployees = employees.length;
   const totalPresent = employees.reduce((sum, e) => sum + e.present, 0);
   const totalWfh = employees.reduce((sum, e) => sum + e.wfh, 0);
   const totalLeave = employees.reduce((sum, e) => sum + e.leave, 0);
 
-  // Export Excel
   const exportToExcel = () => {
-    if (filteredEmployees.length === 0) {
-      toast.info("No employees to export");
-      return;
+    try {
+      const ws = XLSX.utils.json_to_sheet(
+        filteredEmployees.map((emp) => ({
+          Name: emp.name,
+          Email: emp.email,
+          Department: emp.department,
+          "Present Days": emp.present,
+          "WFH Days": emp.wfh,
+          "Leave Days": emp.leave,
+        }))
+      );
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+      XLSX.writeFile(wb, `Attendance_${month}-${year}.xlsx`);
+      showToast("Excel exported successfully!");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to export Excel", true);
     }
-    const ws = XLSX.utils.json_to_sheet(
-      filteredEmployees.map((emp) => ({
-        Name: emp.name,
-        Email: emp.email,
-        Department: emp.department,
-        "Present Days": emp.present,
-        "WFH Days": emp.wfh,
-        "Leave Days": emp.leave,
-      }))
-    );
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-    XLSX.writeFile(wb, `Attendance_${month}-${year}.xlsx`);
-    toast.success("Excel exported successfully!");
   };
 
-  // Export PDF
   const exportToPDF = () => {
-    if (filteredEmployees.length === 0) {
-      toast.info("No employees to export");
-      return;
+    try {
+      const doc = new jsPDF();
+      doc.text(`Attendance Report - ${month}/${year}`, 14, 15);
+
+      doc.autoTable({
+        startY: 25,
+        head: [["#", "Name", "Email", "Department", "Present", "WFH", "Leave"]],
+        body: filteredEmployees.map((emp, i) => [
+          i + 1,
+          emp.name,
+          emp.email,
+          emp.department,
+          emp.present,
+          emp.wfh,
+          emp.leave,
+        ]),
+      });
+
+      doc.save(`Attendance_${month}-${year}.pdf`);
+      showToast("PDF exported successfully!");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to export PDF", true);
     }
-
-    const doc = new jsPDF();
-    doc.text(`Attendance Report - ${month}/${year}`, 14, 15);
-
-    doc.autoTable({
-      startY: 25,
-      head: [["#", "Name", "Email", "Department", "Present", "WFH", "Leave"]],
-      body: filteredEmployees.map((emp, i) => [
-        i + 1,
-        emp.name,
-        emp.email,
-        emp.department,
-        emp.present,
-        emp.wfh,
-        emp.leave,
-      ]),
-    });
-
-    doc.save(`Attendance_${month}-${year}.pdf`);
-    toast.success("PDF exported successfully!");
   };
 
   if (loading) return <p>Loading employees...</p>;
@@ -106,24 +107,48 @@ export default function Employees() {
 
   return (
     <div className="container py-4">
-      <ToastContainer position="top-right" autoClose={3000} />
-      <h3 className="text-center mb-4">HR Attendance Dashboard</h3>
+      {/* Toast */}
+      {toast.message && (
+        <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+          <FontAwesomeIcon
+            icon={toast.isError ? faTimesCircle : faCheckCircle}
+            className="me-2"
+          />
+          {toast.message}
+        </div>
+      )}
 
-      {/* Filters & Export Buttons */}
+      <h3 className="text-center mb-4">Manager Attendance Dashboard</h3>
+
       <div className="row mb-4">
         <div className="col-md-3">
           <label>Month</label>
-          <select className="form-select" value={month} onChange={(e) => setMonth(e.target.value)}>
-            {Array.from({ length: 12 }, (_, i) => {
-              const val = (i + 1).toString().padStart(2, "0");
-              const name = new Date(0, i).toLocaleString("default", { month: "long" });
-              return <option key={val} value={val}>{name}</option>;
-            })}
+          <select
+            className="form-select"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+          >
+            <option value="01">January</option>
+            <option value="02">February</option>
+            <option value="03">March</option>
+            <option value="04">April</option>
+            <option value="05">May</option>
+            <option value="06">June</option>
+            <option value="07">July</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
           </select>
         </div>
         <div className="col-md-3">
           <label>Year</label>
-          <select className="form-select" value={year} onChange={(e) => setYear(e.target.value)}>
+          <select
+            className="form-select"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+          >
             <option value="2025">2025</option>
             <option value="2024">2024</option>
             <option value="2023">2023</option>
@@ -139,7 +164,6 @@ export default function Employees() {
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="row text-center mb-4">
         <div className="col-md-3">
           <div className="card p-3 shadow-sm">
@@ -167,7 +191,6 @@ export default function Employees() {
         </div>
       </div>
 
-      {/* Search & Department Filter */}
       <div className="d-flex mb-3 gap-2">
         <input
           type="text"
@@ -177,6 +200,7 @@ export default function Employees() {
           onChange={(e) => setSearch(e.target.value)}
           style={{ maxWidth: "400px" }}
         />
+
         <select
           className="form-select form-control-sm"
           value={department}
@@ -188,21 +212,23 @@ export default function Employees() {
           <option value="HR">Data</option>
           <option value="Finance">Cloud</option>
         </select>
+
         <button
           className="btn btn-secondary btn-sm"
           onClick={() => {
             setSearch("");
             setDepartment("All");
-            toast.info("Filters reset");
           }}
         >
           Reset
         </button>
       </div>
 
-      {/* Employee Table */}
       <div className="table-responsive">
-        <table className="table table-sm table-bordered table-striped text-center small-table-text">
+        <table
+          className="table table-sm table-bordered table-striped text-center small-table-text"
+          style={{ width: "80%", maxWidth: "600px" }}
+        >
           <thead className="thead-dark">
             <tr>
               <th>S.No</th>

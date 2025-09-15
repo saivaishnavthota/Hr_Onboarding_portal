@@ -1,117 +1,143 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import "../Styles/DocumentCollection.css";
 
 export default function DocumentCollection() {
-  const [employeeId, setEmployeeId] = useState("");
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [toast, setToast] = useState({ message: "", isError: false });
 
- const handleFetchDocs = async (e) => {
-  e.preventDefault();
-  if (!employeeId.trim()) return alert("Enter an Employee ID");
-  
-  setLoading(true);
-  try {
-    const res = await fetch(`http://127.0.0.1:8000/documents/${employeeId}`);
-    const data = await res.json();
-    console.log("Docs response:", data);
+  const rowsPerPage = 5;
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000";
 
-    // Convert JSON into array for table
-    const transformed = Object.entries(data)
-      .filter(([key]) => key !== "employeeId" && key !== "uploaded_at") // skip metadata
-      .map(([key, value]) => ({
-        name: key,
-        uploaded: value,
-        url: value ? `http://127.0.0.1:8000/documents/${data.employeeId}/${key}` : null,
-      }));
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/documents/all-documents`);
+        setEmployees(res.data);
+      } catch (err) {
+        console.error("Error fetching employee docs", err);
+        showToast("Failed to load employee data", true);
+      }
+    };
+    fetchEmployees();
+  }, [API_BASE_URL]);
 
-    setDocuments(transformed);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to fetch documents");
-  } finally {
-    setLoading(false);
-  }
-};
+  const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+    setTimeout(() => {
+      setToast({ message: "", isError: false });
+    }, 3000);
+  };
 
-
-  const handleRequestDocs = async () => {
+  const handleRequestDocs = async (employeeId) => {
     try {
-      await fetch(`http://127.0.0.1:8000/documents/${employeeId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      alert("Request sent successfully!");
+      const res = await axios.post(`${API_BASE_URL}/show-documents/${employeeId}`);
+      if (res.status === 200) {
+        showToast("Request sent successfully!");
+      } else {
+        showToast("Failed to send request.", true);
+      }
     } catch (err) {
       console.error(err);
-      alert("Failed to send request");
+      showToast("Error sending request.", true);
     }
   };
 
+  const indexOfLast = currentPage * rowsPerPage;
+  const indexOfFirst = indexOfLast - rowsPerPage;
+  const currentEmployees = employees.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(employees.length / rowsPerPage);
+
+  const goToPage = (page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+
+  if (!employees.length) return <p>Loading...</p>;
+
+  // Safe: get document fields from first employee that has documents
+  const firstWithDocs = employees.find(emp => emp.documents && Object.keys(emp.documents).length > 0);
+  const docFields = firstWithDocs ? Object.keys(firstWithDocs.documents) : [];
+
   return (
-    <div className="doc-container">
-      <div className="doc-form">
-        <h3>Employee Document Collection</h3>
-        <form onSubmit={handleFetchDocs} className="doc-search">
-          <input
-            type="text"
-            placeholder="Enter Employee ID"
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-          />
-          <button type="submit">Fetch Documents</button>
-        </form>
-      </div>
+    <div className="docs-table-wrapper">
+      <h3>Employee Documents Status</h3>
 
-      {loading && (
-  <div className="spinner-container">
-    <div className="spinner"></div>
-    <p>Loading documents...</p>
-  </div>
-)}
+      {/* Toast */}
+      {toast.message && (
+        <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+          <FontAwesomeIcon icon={toast.isError ? faTimesCircle : faCheckCircle} className="me-2" />
+          {toast.message}
+        </div>
+      )}
 
+      <div className="table-scroll">
+        <table className="docs-table">
+          <thead className="text-center">
+            <tr>
+              <th>Employee Details</th>
+              <th>Role</th>
+              <th>Summary</th>
+              {docFields.map((field) => (
+                <th key={field}>{field}</th>
+              ))}
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody className="text-center">
+            {currentEmployees.map((emp) => {
+              const docs = emp.documents || {};
+              const uploadedCount = Object.values(docs).filter(Boolean).length;
+              const totalDocs = Object.keys(docs).length;
 
-      {!loading && documents.length > 0 && (
-        <div className="doc-table-wrapper">
-          <h3>Documents for Employee ID: {employeeId}</h3>
-          <table className="doc-table">
-            <thead>
-              <tr>
-                <th>Document Name</th>
-                <th>Preview</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {documents.map((doc, idx) => (
-                <tr key={idx}>
-                  <td>{doc.name}</td>
+              return (
+                <tr key={emp.id}>
                   <td>
-                    {doc.url ? (
-                      <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                        Open file
-                      </a>
-                    ) : (
-                      "-"
-                    )}
+                    <strong>{emp.name}</strong>
+                    <br />
+                    <small>{emp.email}</small>
                   </td>
+                  <td>{emp.role}</td>
                   <td>
-                    <span
-                      className={`status-pill ${doc.uploaded ? "uploaded" : "not-uploaded"}`}
-                    >
-                      {doc.uploaded ? "Uploaded" : "Not Uploaded"}
-                    </span>
+                    <span className="summary-pill">{uploadedCount}/{totalDocs} uploaded</span>
+                  </td>
+                  {docFields.map((field) => (
+                    <td key={field}>
+                      <span className={`status-pill ${docs[field] ? "uploaded" : "not-uploaded"}`}>
+                        {docs[field] ? "Uploaded" : "Not Uploaded"}
+                      </span>
+                    </td>
+                  ))}
+                  <td>
+                    <button className="request-btn" onClick={() => handleRequestDocs(emp.id)}>
+                      Request Docs
+                    </button>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
-          <div className="request-btn-container">
-            <button className="request-btn" onClick={handleRequestDocs}>
-              Request Document
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button onClick={() => goToPage(currentPage - 1)}>◀</button>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i + 1}
+              className={currentPage === i + 1 ? "active" : ""}
+              onClick={() => goToPage(i + 1)}
+            >
+              {i + 1}
             </button>
-          </div>
+          ))}
+          <button onClick={() => goToPage(currentPage + 1)}>▶</button>
+          <span className="page-info">Page {currentPage} of {totalPages}</span>
         </div>
       )}
     </div>

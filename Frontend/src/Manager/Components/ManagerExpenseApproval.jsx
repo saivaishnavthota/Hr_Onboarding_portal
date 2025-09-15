@@ -5,38 +5,46 @@ import "../Styles/ManagerExpenseApproval.css";
 export default function ManagerExpenseApproval() {
   const [expenses, setExpenses] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
-  const [editingStatus, setEditingStatus] = useState({}); // store selected status
+  const [editingStatus, setEditingStatus] = useState({});
+  const [toast, setToast] = useState({ message: null, isError: false });
+
+  // Show toast for 3 seconds
+  const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+    setTimeout(() => setToast({ message: null, isError: false }), 3000);
+  };
 
   // Fetch all expenses
   useEffect(() => {
+    const fetchExpenses = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/expenses");
+        setExpenses(res.data);
+      } catch (err) {
+        console.error("Error fetching expenses:", err);
+        showToast("Failed to fetch expenses", true);
+      }
+    };
     fetchExpenses();
   }, []);
-
-  const fetchExpenses = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/api/expenses");
-      setExpenses(res.data);
-    } catch (err) {
-      console.error("Error fetching expenses:", err);
-    }
-  };
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  // Handle dropdown change
   const handleStatusChange = (id, newStatus) => {
     setEditingStatus((prev) => ({ ...prev, [id]: newStatus }));
   };
 
-  // Save new status to backend
   const saveStatus = async (id) => {
     try {
       await axios.put(`http://localhost:5000/api/expenses/${id}`, {
         status: editingStatus[id],
       });
-      fetchExpenses();
+      // Refetch expenses after update
+      const res = await axios.get("http://localhost:5000/api/expenses");
+      setExpenses(res.data);
+      showToast("Expense status updated successfully!");
       setEditingStatus((prev) => {
         const updated = { ...prev };
         delete updated[id];
@@ -44,11 +52,19 @@ export default function ManagerExpenseApproval() {
       });
     } catch (err) {
       console.error("Error saving status:", err);
+      showToast("Failed to update expense status", true);
     }
   };
 
   return (
     <div className="manager-container">
+      {/* Toast Notification */}
+      {toast.message && (
+        <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+          {toast.message}
+        </div>
+      )}
+
       <h4 className="heading">Manager Expense Approvals</h4>
 
       <table className="manager-table">
@@ -103,14 +119,13 @@ export default function ManagerExpenseApproval() {
                     <button
                       className="btn-save"
                       onClick={() => saveStatus(exp.id)}
-                      disabled={selectedStatus === currentStatus} // ✅ disable if unchanged
+                      disabled={selectedStatus === currentStatus}
                     >
                       Save
                     </button>
                   </td>
                 </tr>
 
-                {/* Expanded row */}
                 {expandedId === exp.id && (
                   <tr className="expand-row">
                     <td colSpan="6">

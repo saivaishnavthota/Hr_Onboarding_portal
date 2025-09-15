@@ -1,377 +1,351 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useEffect } from "react"; 
+import axios from "axios";
 import "../Styles/ApplyLeave.css";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 
 export default function ApplyLeave() {
-const user = JSON.parse(localStorage.getItem("user"));
-const employeeId = user?.id;
-
-  const formSectionRef = useRef(null);
-
-  const [leaveBalances, setLeaveBalances] = useState({});
-  const [leaveHistory, setLeaveHistory] = useState([]);
-
-  const [leaveType, setLeaveType] = useState("");
-  const [reason, setReason] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [totalDays, setTotalDays] = useState(0);
-
   const [activeTab, setActiveTab] = useState("apply");
-  const [toast, setToast] = useState({ message: null, isError: false });
+  const [formData, setFormData] = useState({
+    leaveType: "",
+    halfDay: false,
+    startDate: "",
+    endDate: "",
+    reason: ""
+  });
+  const [pastLeaves, setPastLeaves] = useState([]);
+  const [summary, setSummary] = useState({});
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const employee_id = user.id;
+   // Replace with logged-in employee id
 
-
-const fetchData = React.useCallback(() => {
-  const token = localStorage.getItem("token");
-  if (!token || !employeeId) {
-    console.error("User not logged in or ID missing!");
-    return;
-  }
-  fetch(`https://92a58a58219c.ngrok-free.app/leave_balances/${employeeId}`, {
-    headers: { "Authorization": `Bearer ${token}` }
-  })
-    .then(async (res) => {
-      const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        console.error("Invalid JSON response:", text);
-        throw e;
-      }
-    })
-    .then((data) => setLeaveBalances(data))
-    .catch((err) => console.error("Error fetching balances:", err));
-
-  fetch(`https://92a58a58219c.ngrok-free.app/all_leaves/${employeeId}`, {
-    headers: {
-      "Authorization": `Bearer ${token}`,
-    }
-  })
-    .then((res) => {
-      if (!res.ok) throw new Error(`HTTP error! ${res.status}`);
-      return res.json();
-    })
-    .then((data) => setLeaveHistory(data))
-    .catch((err) => console.error("Error fetching history:", err));
-}, [employeeId]);
-
+  // Fetch summary + past leaves
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchSummary();
+    fetchPastLeaves();
+  }, []);
 
-
-  const handleScrollToForm = () => {
-    formSectionRef.current.scrollIntoView({ behavior: "smooth" });
-  };
-
-  
-  const calculateDays = (start, end) => {
-    if (start && end) {
-      let s = new Date(start),
-        e = new Date(end),
-        count = 0;
-      while (s <= e) {
-        if (s.getDay() !== 0 && s.getDay() !== 6) {
-          count++;
-        }
-        s.setDate(s.getDate() + 1);
-      }
-      setTotalDays(count);
-    }
-  };
-
-  
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  if (!leaveType) {
-    alert("Please select a leave type");
-    return;
-  }
-  if (totalDays <= 0) {
-    alert("Please select valid start and end dates");
-    return;
-  }
-  if (!reason.trim()) {
-    alert("Please provide a reason");
-    return;
-  }
-
+const fetchSummary = async () => {
   try {
+    const res = await axios.get(`http://127.0.0.1:8000/leave_balances/${employee_id}`);
+    
+    // map backend fields to frontend expected keys
+    const mappedSummary = {
+      sick_allocated: res.data.sick_leaves || 0,
+      casual_allocated: res.data.casual_leaves || 0,
+      annual_allocated: res.data.paid_leaves || 0,
+      sickApplied: 0,   // you’ll populate this from applied leaves
+      casualApplied: 0,
+      annualApplied: 0,
+    };
 
-    const token = localStorage.getItem("token"); 
-    if (!token) {
-      alert("You are not logged in!");
-      return;
-    }
-
-    const response = await fetch("https://7af2b81040a6.ngrok-free.app/apply_leave", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}` // Include JWT
-      },
-      body: JSON.stringify({
-        leave_type: leaveType,
-        start_date: startDate,
-        end_date: endDate,
-        reason
-      }),
-    });
-
-
-    const data = await response.json();
-
-      if (data.success) {
-        setToast({ message: data.message || "Leave applied successfully!", isError: false });
-      } else {
-        setToast({ message: data.error || "Error apply", isError: true });
-      }
-
-     
-      setLeaveType("");
-      setReason("");
-      setStartDate("");
-      setEndDate("");
-      setTotalDays(0);
-      setActiveTab("history");
-
-     
-      fetchData();
-    }
-  catch (err) {
-    console.error("Error applying leave:", err);
-    alert("Failed to apply leave. Check console for details.");
+    setSummary(mappedSummary);
+  } catch (err) {
+    alert("Failed to fetch summary. Please try again later.");
   }
 };
 
-useEffect(() => {
-           if (toast.message) {
-             const timer = setTimeout(() => setToast({ message: null, isError: false }), 2000);
-          return () => clearTimeout(timer);
-          }
-        }, [toast]);
 
-  const totalAvailable =
-    (leaveBalances.Sick?.available || 0) +
-    (leaveBalances.Casual?.available || 0) +
-    (leaveBalances.Annual?.available || 0);
+  const fetchPastLeaves = async () => {
+    try {
+      const res = await axios.get(`http://127.0.0.1:8000/all_leaves/${employee_id}`);
+      setPastLeaves(res.data);
+    } catch (err) {
+      alert("Failed to fetch past leaves. Please try again later.");
+    }
+  };
 
-  const totalApplied =
-    (leaveBalances.Sick?.applied || 0) +
-    (leaveBalances.Casual?.applied || 0) +
-    (leaveBalances.Annual?.applied || 0);
+  // ✅ Calculate working days excluding Saturday & Sunday
+  const calculateWorkingDays = (start_date, end_date, halfDay = false) => {
+    let current = new Date(start_date);
+    const endDate = new Date(end_date);
+    let days = 0;
+
+    while (current <= endDate) {
+      const day = current.getDay(); // 0 = Sunday, 6 = Saturday
+      if (day !== 0 && day !== 6) {
+        days++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    if (halfDay && days > 0) {
+      return days - 0.5; // subtract half day
+    }
+    return days;
+  };
+
+  // Input change
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === "checkbox" ? checked : value,
+    });
+  };
+
+  // ✅ Remaining leaves helper
+  const getRemainingLeaves = (type) => {
+    if (type === "Sick") {
+      return (summary.sick_allocated || 0) - (summary.sickApplied || 0);
+    } else if (type === "Casual") {
+      return (summary.casual_allocated || 0) - (summary.casualApplied || 0);
+    } else if (type === "Annual") {
+      return (summary.annual_allocated || 0) - (summary.annualApplied || 0);
+    }
+    return 0;
+  };
+
+  // Submit
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.leaveType || !formData.startDate || !formData.endDate || !formData.reason) {
+      alert("⚠️ Please fill in all required fields.");
+      return;
+    }
+
+    const totalDays = calculateWorkingDays(
+      formData.startDate,
+      formData.endDate,
+      formData.halfDay
+    );
+
+    if (totalDays <= 0) {
+      alert("⚠️ Invalid date range. Please select valid dates.");
+      return;
+    }
+
+    // ✅ Check available leaves before applying
+    const remaining = getRemainingLeaves(formData.leaveType);
+    if (totalDays > remaining) {
+      alert(`⚠️ You don't have enough ${formData.leaveType} leaves. Remaining: ${remaining}`);
+      return;
+    }
+
+    try {
+      
+      await axios.post("http://127.0.0.1:8000/apply_leave", {
+    employee_id,
+  leave_type: formData.leaveType,
+  half_day: formData.halfDay,
+  start_date: formData.startDate,
+  end_date: formData.endDate,
+  reason: formData.reason,
+  no_of_days: totalDays,
+});
+
+      alert("✅ Leave applied successfully!");
+
+      // Refresh data + redirect to past
+      fetchSummary();
+      fetchPastLeaves();
+      setActiveTab("past");
+
+      // Reset form
+      setFormData({
+        leaveType: "",
+        halfDay: false,
+        startDate: "",
+        endDate: "",
+        reason: ""
+      });
+
+    } catch (err) {
+      
+      alert("❌ Failed to apply leave. Please try again later.");
+    }
+  };
+
+  const totalDays = formData.startDate && formData.endDate
+    ? calculateWorkingDays(formData.startDate, formData.endDate, formData.halfDay)
+    : 0;
+
+  const remainingLeaves = getRemainingLeaves(formData.leaveType);
+  const isDisabled = totalDays > remainingLeaves && formData.leaveType !== "";
 
   return (
-    <div className="apply-leave-container container py-4">
-      <h3 className="text-center mb-4">Apply for Leave</h3>
-
-      {toast.message && (
+    <div className="apply-leave-container">
+      {/* ✅ Toast UI */}
+      {/* {toast.message && (
         <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
-          <FontAwesomeIcon icon={toast.isError ? faTimesCircle : faCheckCircle} className="me-2" />
+          <FontAwesomeIcon
+            icon={toast.isError ? faTimesCircle : faCheckCircle}
+            className="me-2"
+          />
           {toast.message}
         </div>
-      )}
-
-    
-      <div className="row text-center mb-4">
-        <div className="col-md-6">
-          <div className="leave-summary">
-            <h5>Total Applied Leaves</h5>
-            <p>{totalApplied}</p>
-          </div>
+      )} */}
+ 
+      <div className="heading"><h2>Apply a Leave</h2></div>
+ 
+      {/* Top summary cards */}
+      <div className="summary-row">
+        <div className="summary-card">
+          <h4>Total Applied Leaves</h4>
+          <p>{summary.sickApplied + summary.casualApplied + summary.annualApplied || 0}</p>
         </div>
-        <div className="col-md-6">
-          <div className="leave-summary">
-            <h5>Total Available Leaves</h5>
-            <p>{totalAvailable}</p>
-          </div>
+        <div className="summary-card">
+          <h4>Total Available Leaves</h4>
+          <p>{(summary.sick_allocated + summary.casual_allocated + summary.annual_allocated) || 0}</p>
         </div>
       </div>
-
-      <div className="d-flex justify-content-end mb-3">
-        <button className="btn btn-primary" onClick={handleScrollToForm}>
-          Apply Leave
-        </button>
+ 
+      <div className="summary-row">
+        <div className="summary-card sick-card">
+          <h4>Sick Leave</h4>
+          <p>Allocated: {summary.sick_allocated}</p>
+          <p>Applied: {summary.sickApplied}</p>
+        </div>
+        <div className="summary-card casual-card">
+          <h4>Casual Leave</h4>
+          <p>Allocated: {summary.casual_allocated}</p>
+          <p>Applied: {summary.casualApplied}</p>
+        </div>
       </div>
-
-     
-     <div className="leave-cards-wrapper mb-4">
-  <div className="row mb-3">
-    <div className="col-12">
-      <div className="leave-card sick text-center">
-        <h5>Sick Leave</h5>
-        <p>Applied: {leaveBalances.Sick?.applied || 0}</p>
-        <p>Available: {leaveBalances.Sick?.available || 0}</p>
+ 
+      <div className="summary-row center">
+        <div className="summary-card annual-card">
+          <h4>Annual Leave</h4>
+          <p>Allocated: {summary.annual_allocated}</p>
+          <p>Applied: {summary.annualApplied}</p>
+        </div>
       </div>
-    </div>
-  </div>
-
-  <div className="row mb-3">
-    <div className="col-12">
-      <div className="leave-card casual text-center">
-        <h5>Casual Leave</h5>
-        <p>Applied: {leaveBalances.Casual?.applied || 0}</p>
-        <p>Available: {leaveBalances.Casual?.available || 0}</p>
-      </div>
-    </div>
-  </div>
-
-  <div className="row">
-    <div className="col-12">
-      <div className="leave-card annual text-center">
-        <h5>Annual/Earned Leave</h5>
-        <p>Applied: {leaveBalances.Annual?.applied || 0}</p>
-        <p>Available: {leaveBalances.Annual?.available || 0}</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-      <hr />
-
-      
-      <div ref={formSectionRef} className="form-section mt-4">
-        <ul className="nav nav-tabs">
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === "apply" ? "active" : ""}`}
-              onClick={() => setActiveTab("apply")}
-            >
-              Apply Leave
-            </button>
-          </li>
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === "history" ? "active" : ""}`}
-              onClick={() => setActiveTab("history")}
-            >
-              Past Leaves
-            </button>
-          </li>
-        </ul>
-
-        <div className="tab-content p-3 border border-top-0">
-        
-          {activeTab === "apply" && (
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label>Leave Type</label>
-                <select
-                  className="form-control"
-                  value={leaveType}
-                  onChange={(e) => setLeaveType(e.target.value)}
-                >
-                  <option value="">-- Select Leave Type --</option>
-                  <option value="Sick">Sick Leave</option>
-                  <option value="Casual">Casual Leave</option>
-                  <option value="Annual">Annual/Earned Leave</option>
-                  <option value="Maternity">Maternity Leave</option>
-                  <option value="Paternity">Paternity Leave</option>
-                </select>
-              </div>
-
-              <div className="row mb-3">
-                <div className="col-md-6">
-                  <label>Start Date</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      calculateDays(e.target.value, endDate);
-                    }}
-                  />
-                </div>
-                <div className="col-md-6">
-                  <label>End Date</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      calculateDays(startDate, e.target.value);
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="mb-3">
-  <label>Total Days for Leave</label>
-  <p className="form-control">
-    {totalDays > 0 ? totalDays : "Select Start and End Date"}
-  </p>
-</div>
-
-
-              <div className="mb-3">
-                <label>Reason</label>
-                <textarea
-                  className="form-control"
-                  rows="3"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="Enter reason for leave"
-                ></textarea>
-              </div>
-
-              <button type="submit" className="btn btn-success">
-                Apply for Leave
-              </button>
-            </form>
-          )}
-
-          {/* Past Leaves */}
-          {activeTab === "history" && (
-            <div className="leave-history">
-              {leaveHistory.length === 0 ? (
-                <p>No leaves applied yet.</p>
-              ) : (
-                <table className="table table-bordered table-striped">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Leave Type</th>
-                      <th>Start Date</th>
-                      <th>End Date</th>
-                      <th>Total Days</th>
-                      <th>Reason</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaveHistory.map((leave, index) => (
-                      <tr key={index}>
-                        <td>{leave.id}</td>
-                        <td>{leave.type}</td>
-                        <td>{leave.startDate}</td>
-                        <td>{leave.endDate}</td>
-                        <td>{leave.days}</td>
-                        <td>{leave.reason}</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              leave.status === "Approved"
-                                ? "bg-success"
-                                : "bg-danger"
-                            }`}
-                          >
-                            {leave.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+ 
+      {/* Form with tabs */}
+      <div className="form-container">
+        {/* Tabs */}
+        <div className="apply-tabs">
+          <div
+            className={`apply-tab ${activeTab === "apply" ? "active" : ""}`}
+            onClick={() => setActiveTab("apply")}
+          >
+            Apply Leave
+          </div>
+          <div
+            className={`apply-tab ${activeTab === "past" ? "active" : ""}`}
+            onClick={() => setActiveTab("past")}
+          >
+            Past Leaves
+          </div>
+        </div>
+ 
+        {/* Apply Leave Form */}
+        {activeTab === "apply" && (
+          <form className="leave-form" onSubmit={handleSubmit}>
+            <label>
+              Leave Type:
+              <select
+                name="leaveType"
+                value={formData.leave_type}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select</option>
+                <option value="Sick">Sick Leave</option>
+                <option value="Casual">Casual Leave</option>
+                <option value="Annual">Annual Leave</option>
+              </select>
+            </label>
+ 
+            <div className="halfday-row">
+              <label className="halfday-label">
+                <input
+                  type="checkbox"
+                  name="halfDay"
+                  checked={formData.halfDay}
+                  onChange={handleChange}
+                />
+                Half Day
+              </label>
             </div>
-          )}
-        </div>
+ 
+            <div className="date-row">
+              <label>
+                Start Date:
+                <input
+                  type="date"
+                  name="startDate"
+                  value={formData.start_date}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+ 
+              <label>
+                End Date:
+                <input
+                  type="date"
+                  name="endDate"
+                  value={formData.end_date}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+            </div>
+ 
+            <label>
+              Total Days:
+              <input type="text" value={formData.no_of_days} readOnly />
+            </label>
+ 
+            <label>
+              Reason:
+              <textarea
+                name="reason"
+                value={formData.reason}
+                onChange={handleChange}
+                required
+              />
+            </label>
+            <button type="submit" disabled={isDisabled}>
+              {isDisabled
+                ? `Not enough ${formData.leaveType} leaves (Remaining: ${remainingLeaves})`
+                : "Apply Leave"}
+            </button>
+          </form>
+        )}
+ 
+        {/* Past Leaves */}
+        {activeTab === "past" && (
+          <div className="past-leaves">
+            <h3>Past Leaves</h3>
+            {pastLeaves.length === 0 ? (
+              <p>No past leaves</p>
+            ) : (
+              <table className="leave-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Total Days</th>
+                    <th>Half Day</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pastLeaves.map((leave) => (
+                    <tr key={leave.id}>
+                      <td>{leave.leave_type}</td>
+                      <td>{leave.start_date}</td>
+                      <td>{leave.end_date}</td>
+                      <td>{leave.no_of_days}</td>
+                      <td>{leave.halfDay ? "Yes" : "No"}</td>
+                      <td>{leave.reason}</td>
+                      <td>
+  <button className={`status-btn ${leave.status.toLowerCase()}`}>
+    {leave.status}
+  </button>
+</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
+ 

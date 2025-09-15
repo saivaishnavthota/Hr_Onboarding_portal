@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faTimes, faCheck } from "@fortawesome/free-solid-svg-icons";
-
-
+import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import axios from "axios";
 function DropdownCheckbox({ label, options, selectedValues, onChange }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef();
 
-  
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -39,8 +38,7 @@ function DropdownCheckbox({ label, options, selectedValues, onChange }) {
         className="btn btn-sm btn-light w-100 text-start"
         onClick={() => setOpen(!open)}
       >
-        {label}:{" "}
-        {selectedValues.length > 0 ? `${selectedValues.length} selected` : "None"}
+        {label}: {selectedValues.length > 0 ? `${selectedValues.length} selected` : "None"}
         <span style={{ float: "right" }}>▼</span>
       </button>
       {open && (
@@ -79,70 +77,106 @@ export default function EmployeeForm() {
   const [editRow, setEditRow] = useState(null);
   const [selectedHR, setSelectedHR] = useState({});
   const [selectedMgr, setSelectedMgr] = useState({});
- 
-  
-  const fetchEmployees = () => {
-    fetch("http://127.0.0.1:8000/users/employees")
-      .then((res) => res.json())
-      .then((data) => setEmployees(data))
-      .catch((err) => console.error("Error fetching employees:", err));
-  };
+  const [toast, setToast] = useState({ message: null, isError: false });
+
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
+  const showToast = React.useCallback((message, isError = false) => {
+    setToast({ message, isError });
+  }, []);
+
+  useEffect(() => {
+    if (toast.message) {
+      const timer = setTimeout(() => setToast({ message: null, isError: false }), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const fetchEmployees = React.useCallback(async () => {
+    try {
+      const res = await axios.get("http://127.0.0.1:8000/users/employees");
+      setEmployees(res.data);
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+      showToast("Failed to fetch employees.", true);
+    }
+  }, [API_BASE_URL, showToast]);
+
+  const fetchManagers = React.useCallback(async () => {
+  try {
+    const res = await axios.get("http://127.0.0.1:8000/users/managers");
+    setManagersList(Array.isArray(res.data) ? res.data : res.data.managers || []);
+  } catch (err) {
+    console.error("Error fetching managers:", err);
+    showToast("Failed to fetch managers.", true);
+  }
+}, [API_BASE_URL, showToast]);
+
+const fetchHRs = React.useCallback(async () => {
+  try {
+    const res = await axios.get("http://127.0.0.1:8000/users/hrs");
+    setHRList(Array.isArray(res.data) ? res.data : res.data.HRs || []);
+  } catch (err) {
+    console.error("Error fetching HR:", err);
+    showToast("Failed to fetch HR list.", true);
+  }
+}, [API_BASE_URL, showToast]);
 
   useEffect(() => {
     fetchEmployees();
+    fetchManagers();
+    fetchHRs();
+  }, [fetchEmployees, fetchManagers, fetchHRs]);
 
-    fetch("http://127.0.0.1:8000/users/managers")
-      .then((res) => res.json())
-      .then((data) => setManagersList(data))
-      .catch((err) => console.error("Error fetching managers:", err));
-
-    fetch("http://127.0.0.1:8000/users/hrs")
-      .then((res) => res.json())
-      .then((data) => setHRList(data))
-      .catch((err) => console.error("Error fetching HR:", err));
-  }, []);
-
-  const submitChanges = (empId) => {
+  const submitChanges = async (empId) => {
     const hrIds = selectedHR[empId] || [];
     const mgrIds = selectedMgr[empId] || [];
 
-    const requests = [];
+    if (hrIds.length === 0 && mgrIds.length === 0) {
+      showToast("No HR/Manager selected for assignment.", true);
+      return;
+    }
 
-if (hrIds.length > 0 || mgrIds.length > 0) {
-  requests.push(
-    fetch("http://127.0.0.1:8000/users/assign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        emp_id: editRow.id,     // or however you track the employee
+    try {
+      await axios.post("http://127.0.0.1:8000/users/assign", {
+        emp_id: empId,
         manager1_id: mgrIds[0] || null,
         manager2_id: mgrIds[1] || null,
         manager3_id: mgrIds[2] || null,
         hr1_id: hrIds[0] || null,
         hr2_id: hrIds[1] || null,
-      }),
-    })
-  );
-}
+      });
 
-
-    Promise.all(requests)
-      .then(() => {
-        fetchEmployees();
-        setEditRow(null);
-      })
-      .catch((err) => console.error("Error submitting:", err));
+      showToast("Assignments updated successfully!");
+      fetchEmployees();
+      setEditRow(null);
+    } catch (err) {
+      console.error("Error submitting:", err);
+      showToast("Failed to update assignments.", true);
+    }
   };
 
   return (
-    <div className="employee-form">
+    <div className="employee-form bg-light">
+      {toast.message && (
+        <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+           <FontAwesomeIcon
+                icon={toast.isError ? faTimesCircle : faCheckCircle}
+                className="me-2"
+              />
+          {toast.message}
+        </div>
+      )}
+
+      <h3 className="text-center my-4">Employee Management</h3>
+      <h6 className="text-left m-5">Assign HR/Managers</h6>
       <div className="table-responsive m-5">
         <table className="table table-sm table-bordered table-striped text-center small-table-text">
           <thead className="thead-dark">
             <tr>
               <th>S.No</th>
               <th>Employee Details</th>
-              <th>Role</th>
+              <th>Type</th>
               <th>HR(s)</th>
               <th>Manager(s)</th>
               <th>Actions</th>
@@ -157,58 +191,49 @@ if (hrIds.length > 0 || mgrIds.length > 0) {
                   <td>
                     {emp.name}
                     <br />
-                    <span style={{ fontSize: "0.85em", color: "#888" }}>
-                      {emp.email}
-                    </span>
+                    <span style={{ fontSize: "0.85em", color: "#888" }}>{emp.email}</span>
                   </td>
-                  <td>{emp.role}</td>
-                 <td>
-  {!isEditing && (
-    emp.hr.length > 0 ? (
-      emp.hr.map((hr, i) => <div key={i}>{hr}</div>)
-    ) : (
-      <span style={{ color: "#999" }}>Not Assigned</span>
-    )
-  )}
+                  <td>{emp.type}</td>
 
-  {isEditing && (
-    <DropdownCheckbox
-      label="HR"
-      options={HRList}
-      selectedValues={selectedHR[emp.employeeId] || []}
-      onChange={(updated) =>
-        setSelectedHR((prev) => ({
-          ...prev,
-          [emp.employeeId]: updated,
-        }))
-      }
-    />
-  )}
-</td>
+                  <td>
+                    {!isEditing &&
+                      (emp.hr.length > 0 ? (
+                        emp.hr.map((hr, i) => <div key={i}>{hr}</div>)
+                      ) : (
+                        <span style={{ color: "#999" }}>Not Assigned</span>
+                      ))}
 
-                 <td>
-  {!isEditing && (
-    emp.managers.length > 0 ? (
-      emp.managers.map((mgr, i) => <div key={i}>{mgr}</div>)
-    ) : (
-      <span style={{ color: "#999" }}>Not Assigned</span>
-    )
-  )}
+                    {isEditing && (
+                      <DropdownCheckbox
+                        label="HR"
+                        options={HRList}
+                        selectedValues={selectedHR[emp.employeeId] || []}
+                        onChange={(updated) =>
+                          setSelectedHR((prev) => ({ ...prev, [emp.employeeId]: updated }))
+                        }
+                      />
+                    )}
+                  </td>
 
-  {isEditing && (
-    <DropdownCheckbox
-      label="Manager"
-      options={managersList}
-      selectedValues={selectedMgr[emp.employeeId] || []}
-      onChange={(updated) =>
-        setSelectedMgr((prev) => ({
-          ...prev,
-          [emp.employeeId]: updated,
-        }))
-      }
-    />
-  )}
-</td>
+                  <td>
+                    {!isEditing &&
+                      (emp.managers.length > 0 ? (
+                        emp.managers.map((mgr, i) => <div key={i}>{mgr}</div>)
+                      ) : (
+                        <span style={{ color: "#999" }}>Not Assigned</span>
+                      ))}
+
+                    {isEditing && (
+                      <DropdownCheckbox
+                        label="Manager"
+                        options={managersList}
+                        selectedValues={selectedMgr[emp.employeeId] || []}
+                        onChange={(updated) =>
+                          setSelectedMgr((prev) => ({ ...prev, [emp.employeeId]: updated }))
+                        }
+                      />
+                    )}
+                  </td>
 
                   <td>
                     {isEditing ? (
@@ -231,15 +256,8 @@ if (hrIds.length > 0 || mgrIds.length > 0) {
                         className="btn btn-sm btn-warning"
                         onClick={() => {
                           setEditRow(emp.employeeId);
-                          
-                          setSelectedHR((prev) => ({
-                            ...prev,
-                            [emp.employeeId]: emp.hr || [],
-                          }));
-                          setSelectedMgr((prev) => ({
-                            ...prev,
-                            [emp.employeeId]: emp.managers || [],
-                          }));
+                          setSelectedHR((prev) => ({ ...prev, [emp.employeeId]: emp.hr || [] }));
+                          setSelectedMgr((prev) => ({ ...prev, [emp.employeeId]: emp.managers || [] }));
                         }}
                       >
                         <FontAwesomeIcon icon={faEdit} />

@@ -7,15 +7,19 @@ import ManagerLeaveManagement from "./ManagerLeaveManagement";
 import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import ManagerExpenseApproval from "./ManagerExpenseApproval";
 import UpdatePassword from "../../Employee/Components/UpdatePassword";
+import ManagerEmployeeAttendence from "./ManagerEmployeeAttendence";
+import ManagerAttendence from "./ManagerAttendance";
 import {
   faArrowLeft,
   faArrowRight,
   faCalendarCheck,
   faPaperPlane,
-  faUpload,
   faKey,
-  faUser,
   faUserFriends,
+  faCalendarAlt,
+  faUserCheck,
+  faCoins,
+  faCircleUser,
 } from "@fortawesome/free-solid-svg-icons";
 
 import "../Styles/ManagerDashboard.css"
@@ -35,11 +39,23 @@ export default function ManagerDashboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+   const [username, setUsername] = useState("");
+
+  useEffect(() => {
+    
+    const storedUser = localStorage.getItem("username");
+    if (storedUser) {
+      setUsername(storedUser);
+    }
+  }, []);
+
  const menuItems = [
+  { name: "Employees Attendance", icon: faUserCheck, path: "employees-attendance" },
   { name: "Employees", icon: faUserFriends, path: "employees" },
+  { name: "Add Attendence", icon: faCalendarAlt, path: "add-attendance" },
   { name: "Apply Leave", icon: faPaperPlane, path: "apply-leave" },
-  { name: "Leave Management", icon: faPaperPlane, path: "leave-manage" },
-   { name: "Expense Management", icon: faPaperPlane, path: "expense-manage" },
+  { name: "Leave Management", icon: faCalendarCheck, path: "leave-manage" },
+   { name: "Expense Management", icon: faCoins, path: "expense-manage" },
   { name: "Change Password", icon: faKey, path: "change-password" },
 ];
 
@@ -52,6 +68,17 @@ export default function ManagerDashboard() {
           <img src={Logo} alt="Company Logo" className="logo-img" />
           <h2 className="logo-text">Manager Dashboard</h2>
         </div>
+          <div className="profile"  style={{
+                display: "flex",
+                alignItems: "center",  
+                gap: "8px",
+                height: "100%",   
+              }}>
+                   <FontAwesomeIcon icon={faCircleUser} size="2x" />
+                     <span>
+                    {username || "Guest"}
+                    </span>
+                </div>
       </header>
 
       <div className="main">
@@ -86,12 +113,12 @@ export default function ManagerDashboard() {
         <main className="content">
          <Routes>
     <Route index element={<h3>Welcome to Manager Dashboard</h3>} />
-    {/* <Route path="attendance" element={<EmployeeAttendence />} /> */}
-    {/* <Route path="upload-docs" element={<EmployeeUploadDocs />} /> */}
+    <Route path="add-attendance" element={<ManagerAttendence />} />
+    <Route path="employees-attendance" element={<ManagerEmployeeAttendence />} />
     <Route path="employees" element={<ManagerEmployees />} />
-    {/* <Route path="apply-leave" element={<ManagerApplyLeave />} /> */}
-    {/* <Route path="leave-manage" element={<ManagerLeaveManagement />} /> */}
-    {/* <Route path="expense-manage" element={<ManagerExpenseApproval />} /> */}
+    <Route path="apply-leave" element={<ManagerApplyLeave />} />
+    <Route path="leave-manage" element={<ManagerLeaveManagement />} />
+    <Route path="expense-manage" element={<ManagerExpenseApproval />} />
     <Route path="change-password" element={<UpdatePassword />} /> 
   </Routes>
         </main>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCheckCircle,
@@ -21,7 +22,7 @@ const EmployeeLogin = () => {
   });
 
   const [toast, setToast] = useState({ message: null, isError: false });
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000";
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -35,21 +36,17 @@ const EmployeeLogin = () => {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/users/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email }),
+      const { data } = await axios.post(`${API_BASE_URL}/users/forgot-password`, {
+        email: formData.email,
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        setToast({ message: data.message || "Password reset link sent to your email.", isError: false });
-      } else {
-        setToast({ message: data.error || "Failed to send reset link.", isError: true });
-      }
+      setToast({ message: data.message || "Password reset link sent to your email.", isError: false });
     } catch (err) {
       console.error("Forgot password error:", err);
-      setToast({ message: "Server error, please try again.", isError: true });
+      setToast({
+        message: err.response?.data?.error || "Failed to send reset link.",
+        isError: true,
+      });
     }
   };
 
@@ -57,50 +54,42 @@ const EmployeeLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://127.0.0.1:8000/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const { data } = await axios.post(`${API_BASE_URL}/users/login`, formData);
 
-      const data = await response.json();
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: data.employeeId,
+          name: data.name,
+          role: data.role,
+          email: data.email,
+          onboarding_status: data.onboarding_status,
+        })
+        
+      );
+      console.log(data)
 
-      if (response.ok) {
-        localStorage.setItem("token", data.access_token);
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            id: data.employeeId,
-            name: data.name,
-            role: data.role,
-            email: data.email,
-            onboarding_status: data.onboarding_status,
-          })
-        );
+      setToast({ message: data.message || "Login successful!", isError: false });
 
-        setToast({ message: data.message || "Login successful!", isError: false });
-
-        setTimeout(() => {
-          if (!data.onboarding_status) navigate("/new-user-form");
-          else if (data.role === "HR") navigate("/hr-dashboard");
-          else if (data.role === "Manager") navigate("/manager-dashboard");
-          else navigate("/employee-dashboard");
-        }, 1000);
-      } else {
-        setToast({ message: data.error || "Invalid credentials", isError: true });
-      }
+      setTimeout(() => {
+        if (!data.onboarding_status) navigate("/new-user-form");
+        else if (data.role === "HR") navigate("/hr-dashboard");
+        else if (data.role === "Manager") navigate("/manager-dashboard");
+        else navigate("/employee-dashboard");
+      }, 1000);
     } catch (err) {
       console.error("Login error:", err);
-      setToast({ message: "Server error, please try again.", isError: true });
+      setToast({
+        message: err.response?.data?.error || "Invalid credentials",
+        isError: true,
+      });
     }
   };
 
   useEffect(() => {
     if (toast.message) {
-      const timer = setTimeout(
-        () => setToast({ message: null, isError: false }),
-        1500
-      );
+      const timer = setTimeout(() => setToast({ message: null, isError: false }), 1500);
       return () => clearTimeout(timer);
     }
   }, [toast]);
@@ -125,6 +114,7 @@ const EmployeeLogin = () => {
                 className="me-2"
               />
               {toast.message}
+              
             </div>
           )}
 
@@ -165,7 +155,6 @@ const EmployeeLogin = () => {
             </button>
           </form>
 
-          {/* 🔹 Forgot password link */}
           <p
             className="forgot-password text-center mt-3"
             style={{ color: "blue", cursor: "pointer", textDecoration: "underline" }}
