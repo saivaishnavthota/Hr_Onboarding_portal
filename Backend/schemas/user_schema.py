@@ -7,12 +7,18 @@ from pydantic import EmailStr
 class UserCreate(SQLModel):
     name: str
     email: str
+    role:str
+    type:str
    
+class UsercreateResponse(SQLModel):
+    name:str
+    email:str
 
 class UserResponse(SQLModel):
     employeeId: int
     name: str
     role: str
+    email: str
     onboarding_status: bool
     message: Optional[str] = None
     access_token: Optional[str] = None
@@ -20,6 +26,7 @@ class UserResponse(SQLModel):
 class UserLogin(SQLModel):
     email: str
     password: str
+    
   
 
 class ResetPasswordRequest(SQLModel):
@@ -69,3 +76,15 @@ class EmployeeOnboardingResponse(SQLModel):
     status: str
     message: str
     employee_id: int
+
+class HrApproveRequest(SQLModel):
+    employee_id: int
+
+class UserHrAccept(SQLModel):
+    employee_id: int
+    o_status: bool
+    message: str
+
+
+class ApproveDocsRequest(SQLModel):
+    employeeId: int

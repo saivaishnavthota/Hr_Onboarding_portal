@@ -22,7 +22,7 @@ const EmployeeLogin = () => {
   });
 
   const [toast, setToast] = useState({ message: null, isError: false });
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:5000";
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

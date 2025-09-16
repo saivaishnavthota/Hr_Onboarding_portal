@@ -6,38 +6,76 @@ import { useNavigate } from "react-router-dom";
 
 const acceptedFormats = [".pdf", ".doc", ".docx", ".jpg", ".png"];
 
+
+const user = JSON.parse(localStorage.getItem("user") || "{}");
+const employeeId = user.id;  // ✅ employeeId comes from the saved user object
+
+
+
 const sections = {
+
   employeeDocs: {
+
     title: "Employee Documents",
+
     fields: [
-      { name: "resume", label: "Updated Resume", required: false },
-      { name: "offerLetter", label: "Offer Letter", required: false },
-      { name: "compensation", label: "Latest Compensation Letter", required: false },
-      { name: "experience", label: "Experience & Relieving Letter", required: false },
-      { name: "payslips", label: "Latest 3 months Pay Slips", required: false },
-      { name: "form16", label: "Form 16/ Form 12B / Taxable Income Statement", required: false },
+
+      { name: "updated_resume", label: "Updated Resume", required: false },
+
+      { name: "offer_letter", label: "Offer Letter", required: false },
+
+      { name: "latest_compensation_letter", label: "Latest Compensation Letter", required: false },
+
+      { name: "experience_relieving_letter", label: "Experience & Relieving Letter", required: false },
+
+      { name: "latest_3_months_payslips", label: "Latest 3 months Pay Slips", required: false },
+
+      { name: "form16_or_12b_or_taxable_income", label: "Form 16/ Form 12B / Taxable Income Statement", required: false },
+
     ],
+
   },
+
   educationDocs: {
+
     title: "Educational Documents",
+
     fields: [
-      { name: "ssc", label: "SSC Certificate", required: false },
-      { name: "hsc", label: "HSC Certificate", required: false },
-      { name: "hscMark", label: "HSC Marksheet", required: false },
-      { name: "gradMark", label: "Graduation Marksheet", required: false },
-      { name: "latestGrad", label: "Latest Graduation", required: true },
-      { name: "pgMark", label: "Post-Graduation Marksheet", required: false },
-      { name: "pgCert", label: "Post-Graduation Certificate", required: false },
+
+      { name: "ssc_certificate", label: "SSC Certificate", required: false },
+
+      { name: "hsc_certificate", label: "HSC Certificate", required: false },
+
+      { name: "hsc_marksheet", label: "HSC Marksheet", required: false },
+
+      { name: "graduation_marksheet", label: "Graduation Marksheet", required: false },
+
+      { name: "latest_graduation_certificate", label: "Latest Graduation", required: true },
+
+      { name: "postgraduation_marksheet", label: "Post-Graduation Marksheet", required: false },
+
+      { name: "postgraduation_certificate", label: "Post-Graduation Certificate", required: false },
+
     ],
+
   },
+
   identityDocs: {
+
     title: "Identity Proof",
+
     fields: [
+
       { name: "aadhar", label: "Aadhar", required: true },
+
       { name: "pan", label: "PAN", required: true },
+
       { name: "passport", label: "Passport", required: false },
+
     ],
+
   },
+
 };
 
 export default function NewUserDocsUpload() {
@@ -64,6 +102,9 @@ export default function NewUserDocsUpload() {
 
   const handleDraft = async () => {
     const formData = new FormData();
+
+     formData.append("employeeId", employeeId);
+     
     Object.keys(files).forEach((key) => {
       if (files[key] instanceof File) formData.append(key, files[key]);
     });
@@ -85,6 +126,7 @@ export default function NewUserDocsUpload() {
 
     setSubmitting(true);
     const formData = new FormData();
+    formData.append("employeeId", employeeId);
     Object.keys(files).forEach((key) => {
       if (files[key] instanceof File) formData.append(key, files[key]);
     });

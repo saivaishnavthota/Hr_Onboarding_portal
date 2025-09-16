@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import "../Styles/ManagerExpenseApproval.css";
+import "../../Manager/Styles/ManagerExpenseApproval.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 
-export default function ManagerExpenseApproval() {
+export default function AccountExpenseApproval() {
+
   const [expenses, setExpenses] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [editingStatus, setEditingStatus] = useState({});
@@ -109,7 +110,7 @@ export default function ManagerExpenseApproval() {
 
   return (
     <div className="manager-expense-container">
-      <h4 className="heading">Manager Expense Approvals</h4>
+      <h4 className="heading">Account Manager Expense Approvals</h4>
 
       {toast.message && (
         <div className={`toast-message ${toast.isError ? "error" : "success"}`}>

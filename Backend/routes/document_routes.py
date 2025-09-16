@@ -9,6 +9,7 @@ import psycopg2
 import traceback
 import logging
 import io
+from models.user_model import User
 
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
@@ -91,8 +92,49 @@ async def upload_documents(
 # def get_session():
 #        # Your session creation logic here
 #        pass
+
+@router.get("/all-documents")
+def all_documents(session: Session = Depends(get_session)):
+    employees = session.exec(select(User)).all()  # fetch all employees
+    result = []
+
+    for emp in employees:
+        doc = session.exec(select(Document).where(Document.employee_id == emp.id)).first()
+        documents_status = {}
+
+        if doc:
+            doc_fields = [
+                "aadhar",
+                "pan",
+                "latest_graduation_certificate",
+                "updated_resume",
+                "offer_letter",
+                "latest_compensation_letter",
+                "experience_relieving_letter",
+                "latest_3_months_payslips",
+                "form16_or_12b_or_taxable_income",
+                "ssc_certificate",
+                "hsc_certificate",
+                "hsc_marksheet",
+                "graduation_marksheet",
+                "postgraduation_marksheet",
+                "postgraduation_certificate",
+                "passport",
+            ]
+            # True = uploaded, False = not uploaded
+            documents_status = {field: bool(getattr(doc, field, None)) for field in doc_fields}
+
+        result.append({
+            "id": emp.id,
+            "name": emp.name,
+            "email": emp.email,
+            "role": emp.role,
+            "documents": documents_status
+        })
+
+    return result
     
-@router.get("/{employee_id}")
+@router.get("/emp/{employee_id}")
 def list_documents(employee_id: int, session: Session = Depends(get_session)):
     document = session.exec(
         select(Document).where(Document.employee_id == employee_id)
@@ -126,6 +168,8 @@ def list_documents(employee_id: int, session: Session = Depends(get_session)):
     response["uploaded_at"] = document.uploaded_at
 
     return response
+
+
 
 
 @router.get("/{employee_id}/{doc_type}")
@@ -169,3 +213,4 @@ def preview_document(employee_id: int, doc_type: str, session: Session = Depends
         media_type="application/pdf",  # Change to "image/jpeg" or "image/png" for images
         headers={"Content-Disposition": f"inline; filename={valid_fields[doc_type]}"}
     )
+

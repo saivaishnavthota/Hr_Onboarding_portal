@@ -94,7 +94,7 @@ export default function EmployeeForm() {
 
   const fetchEmployees = React.useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/users/employees`);
+      const res = await axios.get("http://127.0.0.1:8000/users/employees");
       setEmployees(res.data);
     } catch (err) {
       console.error("Error fetching employees:", err);
@@ -103,24 +103,24 @@ export default function EmployeeForm() {
   }, [API_BASE_URL, showToast]);
 
   const fetchManagers = React.useCallback(async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/users/managers`);
-      setManagersList(res.data);
-    } catch (err) {
-      console.error("Error fetching managers:", err);
-      showToast("Failed to fetch managers.", true);
-    }
-  }, [API_BASE_URL, showToast]);
+  try {
+    const res = await axios.get("http://127.0.0.1:8000/users/managers");
+    setManagersList(Array.isArray(res.data) ? res.data : res.data.managers || []);
+  } catch (err) {
+    console.error("Error fetching managers:", err);
+    showToast("Failed to fetch managers.", true);
+  }
+}, [API_BASE_URL, showToast]);
 
-  const fetchHRs = React.useCallback(async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/users/hrs`);
-      setHRList(res.data);
-    } catch (err) {
-      console.error("Error fetching HR:", err);
-      showToast("Failed to fetch HR list.", true);
-    }
-  }, [API_BASE_URL, showToast]);
+const fetchHRs = React.useCallback(async () => {
+  try {
+    const res = await axios.get("http://127.0.0.1:8000/users/hrs");
+    setHRList(Array.isArray(res.data) ? res.data : res.data.HRs || []);
+  } catch (err) {
+    console.error("Error fetching HR:", err);
+    showToast("Failed to fetch HR list.", true);
+  }
+}, [API_BASE_URL, showToast]);
 
   useEffect(() => {
     fetchEmployees();
@@ -138,7 +138,7 @@ export default function EmployeeForm() {
     }
 
     try {
-      await axios.post(`${API_BASE_URL}/users/assign`, {
+      await axios.post("http://127.0.0.1:8000/users/assign", {
         emp_id: empId,
         manager1_id: mgrIds[0] || null,
         manager2_id: mgrIds[1] || null,

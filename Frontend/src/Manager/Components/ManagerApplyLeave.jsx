@@ -87,7 +87,7 @@ export default function ManagerApplyLeave() {
       } else {
         showToast(res.data.message || "Leave applied successfully!", false);
 
-      
+        // Reset form
         setLeaveType("");
         setReason("");
         setStartDate("");

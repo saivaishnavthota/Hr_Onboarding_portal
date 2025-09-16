@@ -90,7 +90,6 @@ th{
   display: inline-block;
   
 }
-
 .dropdown-btn {
   color: rgb(3, 3, 3);
  padding: 10px 10px;
@@ -116,4 +115,113 @@ th{
   margin-right: 10px;
 }
 
+}
+
+ 
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  overflow-y: auto; /* 🔹 allow scrolling inside overlay */
+  padding: 20px;    /* 🔹 so modal has space at top & bottom */
+}
+ 
+.modal-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 800px;
+  width: 90%;
+  position: relative;
+  z-index: 10000;
+  max-height: 90vh;   /* 🔹 limit modal height */
+  overflow-y: auto;   /* 🔹 scroll only content */
+}
+ 
+ 
+/* Ensure overlay children are clickable */
+.modal-overlay * {
+  pointer-events: auto;
+}
+ 
+/* Modal header */
+.modal-card h4 {
+  margin-bottom: 20px;
+  text-align: center;
+}
+ 
+/* 🔹 Textarea */
+.modal-card textarea {
+  width: 100%;
+  height: 100px;
+  resize: none;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+  margin-bottom: 15px;
+}
+
+.modal-card textarea:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 4px rgba(0, 123, 255, 0.3);
+}
+
+/* 🔹 Actions */
+.modal-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Cancel Button */
+.btn-cancel {
+  background: #ccc;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+  margin-right: 10px;
+}
+
+.btn-cancel:hover {
+  background: #b3b3b3;
+}
+
+/* Confirm Button */
+.btn-confirm {
+  background: #d9534f; /* red for reject */
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+.btn-confirm:hover {
+  background: #c9302c;
+}
+
+/* 🔹 Smooth Fade-in Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

@@ -20,38 +20,38 @@ import ExpenseDetails from "./Employee/Components/ExpenseDetails";
 import EmployeeForm from "./HR/Components/EmployeeForm";
 import HRExpenseApproval from "./HR/Components/HRExpenseApproval";
 import ManagerAttendance from "./Manager/Components/ManagerAttendance";
-import ReqForm from "./AccountManager/Components/ReqForm";
-import DocumentCollection from "./HR/Components/DocumentCollection";
-import ManagerExpenseApproval from "./Manager/Components/ManagerExpenseApproval"
+import ManagerExpenseApproval from "./Manager/Components/ManagerExpenseApproval";
+import AccountExpenseApproval from "./AccountManager/Components/AccountExpenseApproval";
+import AccountManagerDashboard from "./AccountManager/Components/AccountManagerDashboard";
 function App() {
   return (
-    <Routes>
-       <Route path="/" element={<EmployeeLogin />} />      
-    <Route path="/new-user-form" element={  < NewUserDetails/> } />
-      <Route path="/new-user-form/docs" element={<NewUserDocsUpload />} />
-    <Route
-        path="/hr-dashboard/*"
-        element={  
-            <Dashboard />
-        }
-      />
-      <Route
-        path="/manager-dashboard/*"
-        element={
-            <ManagerDashboard /> 
-        }
-      /> 
+  //   <Routes>
+  //      <Route path="/" element={<EmployeeLogin />} />      
+  //   <Route path="/new-user-form" element={  < NewUserDetails/> } />
+  //     <Route path="/new-user-form/docs" element={<NewUserDocsUpload />} />
+  //   <Route
+  //       path="/hr-dashboard/*"
+  //       element={  
+  //           <Dashboard />
+  //       }
+  //     />
+  //     <Route
+  //       path="/manager-dashboard/*"
+  //       element={
+  //           <ManagerDashboard /> 
+  //       }
+  //     /> 
 
-      <Route
-        path="/employee-dashboard/*"
-        element={
+  //     <Route
+  //       path="/employee-dashboard/*"
+  //       element={
           
-            <EmployeeDashboard />
+  //           <EmployeeDashboard />
           
-        }
-      />
-  </Routes>
- /* {<EmployeeAttendence/> }*/
+  //       }
+  //     />
+  // </Routes>
+<AccountManagerDashboard/>
   )
 }
 

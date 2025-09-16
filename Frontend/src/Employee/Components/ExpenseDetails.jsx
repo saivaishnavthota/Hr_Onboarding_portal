@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "../Styles/ExpenseDetails.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCheckCircle,
+  faTimesCircle
+} from "@fortawesome/free-solid-svg-icons";
  
 export default function ExpenseDetails() {
   const [activeTab, setActiveTab] = useState("submit");
+  
+  const [toast, showToast] = useState({ message: null, isError: false });
   const [formData, setFormData] = useState({
     category: "",
     amount: "",
@@ -30,6 +37,7 @@ export default function ExpenseDetails() {
         })
         .catch((err) => {
           console.error("Error fetching expenses:", err);
+          showToast("Failed to fetch expense history.", true);
         });
     }
   }, [activeTab, employeeId]);
@@ -82,6 +90,7 @@ export default function ExpenseDetails() {
       setActiveTab("history");
     } catch (err) {
       console.error("Error submitting expense:", err);
+      showToast("Failed to submit expense.", true);
     }
   };
  
@@ -104,6 +113,16 @@ export default function ExpenseDetails() {
  
   return (
     <div className="expense-container">
+      {toast.message && (
+        <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+            <FontAwesomeIcon
+                icon={toast.isError ? faTimesCircle : faCheckCircle}
+                className="me-2"
+              />
+          {toast.message}
+        </div>
+      )}
+
       <div className="expense-card">
         {/* Tabs */}
         <div className="tabs">
@@ -127,12 +146,7 @@ export default function ExpenseDetails() {
             <h2>Expense Request</h2>
  
             <label>Expense Category</label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-            >
+            <select name="category" value={formData.category} onChange={handleChange} required>
               <option value="">Select Category</option>
               <option value="Travel">Travel</option>
               <option value="Food">Food</option>
@@ -147,22 +161,11 @@ export default function ExpenseDetails() {
             <div className="form-row">
               <div>
                 <label>Amount</label>
-                <input
-                  type="number"
-                  name="amount"
-                  value={formData.amount}
-                  onChange={handleChange}
-                  required
-                />
+                <input type="number" name="amount" value={formData.amount} onChange={handleChange} required />
               </div>
               <div>
                 <label>Currency</label>
-                <select
-                  name="currency"
-                  value={formData.currency}
-                  onChange={handleChange}
-                  required
-                >
+                <select name="currency" value={formData.currency} onChange={handleChange} required>
                   <option value="">Select Currency</option>
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
@@ -216,11 +219,7 @@ export default function ExpenseDetails() {
         {activeTab === "history" && (
           <div className="history">
             <h2>Expense History</h2>
-            <button
-              className="btn-clear"
-              onClick={() => setActiveTab("submit")}
-              style={{ marginBottom: "16px" }}
-            >
+            <button className="btn-clear" onClick={() => setActiveTab("submit")} style={{ marginBottom: "16px" }}>
               ← Back
             </button>
             <ul className="history-list">

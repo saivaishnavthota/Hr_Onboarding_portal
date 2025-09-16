@@ -25,7 +25,7 @@ const CreateEmployee = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${API_BASE_URL}/hr/create_employee`, formData);
+      const response = await axios.post("http://127.0.0.1:8000/users/hr/create_employee", formData);
 
       showToast(`✅ Employee Created! ID: ${response.data.id}`, false);
 
@@ -111,7 +111,7 @@ const CreateEmployee = () => {
               required
             >
               <option value="">-- Type --</option>
-              <option value="Full-time">Full time</option>
+              <option value="Full-Time">Full time</option>
               <option value="Contract">Contract</option>
               <option value="Intern">Intern</option>
             </select>

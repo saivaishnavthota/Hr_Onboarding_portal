@@ -5,28 +5,33 @@ import { useNavigate } from "react-router-dom";
 
 export default function NewUserDetails() {
   const navigate = useNavigate();
+  
+
+
+const user = JSON.parse(localStorage.getItem("user") || "{}");
+const employeeId = user.id;
+const email=user.email;
+
   const [employee, setEmployee] = useState({
-    fullName: "",
-    email: "",
+    employee_id:employeeId,
+    full_name: "",
+    personal_email: email,
     dob: "",
-    phone: "",
+    contact_no: "",
     doj: "",
     address: "",
-    graduationYear: "",
-    workExp: "",
-    contactName: "",
-    contactNumber: "",
-    relationship: "",
+    graduation_year: "",
+    work_experience_years: "",
+    emergency_contact_name: "",
+    emergency_contact_number: "",
+    emergency_contact_relation: "",
     gender: "",
   });
 
   const [toast, setToast] = useState({ message: null, isError: false });
 
   // ✅ Load saved form data if exists
-  useEffect(() => {
-    const savedData = localStorage.getItem("employeeDetails");
-    if (savedData) setEmployee(JSON.parse(savedData));
-  }, []);
+  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,7 +46,7 @@ export default function NewUserDetails() {
 
   const handleSaveDraft = async () => {
     try {
-      await axios.post("http://localhost:5000/api/employees/draft", employee);
+      await axios.post("http://127.0.0.1:8000/users/onboard", employee);
       showToast("Draft saved successfully!");
     } catch (err) {
       console.error(err);
@@ -51,7 +56,10 @@ export default function NewUserDetails() {
 
   const handleGoToDocs = async () => {
     try {
-      const res = await axios.post("http://localhost:5000/api/employees", employee);
+      console.log(user)
+      console.log(employee)
+      
+      const res = await axios.post("http://127.0.0.1:8000/users/onboard", employee);
 
       localStorage.setItem("employeeDetails", JSON.stringify(res.data));
       showToast("Employee details submitted successfully!");
@@ -80,22 +88,24 @@ export default function NewUserDetails() {
               <label>Full Name</label>
               <input
                 type="text"
-                name="fullName"
-                value={employee.fullName}
+                name="full_name"
+                value={employee.full_name}
                 onChange={handleChange}
                 required
               />
             </div>
-            <div>
-              <label>Email</label>
+             <div>
+              <label>email</label>
               <input
                 type="email"
-                name="email"
-                value={employee.email}
+                name="personal_email"
+                value={employee.personal_email}
                 onChange={handleChange}
+                readOnly
                 required
               />
             </div>
+            
             <div>
               <label>Date Of Birth</label>
               <input
@@ -109,9 +119,9 @@ export default function NewUserDetails() {
             <div>
               <label>Phone Number</label>
               <input
-                type="text"
-                name="phone"
-                value={employee.phone}
+                type="number"
+                name="contact_no"
+                value={employee.contact_no}
                 onChange={handleChange}
                 required
               />
@@ -145,8 +155,8 @@ export default function NewUserDetails() {
               <label>Latest Graduation Year</label>
               <input
                 type="number"
-                name="graduationYear"
-                value={employee.graduationYear}
+                name="graduation_year"
+                value={employee.graduation_year}
                 onChange={handleChange}
                 required
               />
@@ -155,8 +165,8 @@ export default function NewUserDetails() {
               <label id="star">Work Experience (years)</label>
               <input
                 type="number"
-                name="workExp"
-                value={employee.workExp}
+                name="work_experience_years"
+                value={employee.work_experience_years}
                 onChange={handleChange}
               />
             </div>
@@ -165,8 +175,8 @@ export default function NewUserDetails() {
                 <label>Emergency Contact Name</label>
                 <input
                   type="text"
-                  name="contactName"
-                  value={employee.contactName}
+                  name="emergency_contact_name"
+                  value={employee.emergency_contact_name}
                   onChange={handleChange}
                   required
                 />
@@ -175,8 +185,8 @@ export default function NewUserDetails() {
                 <label>Contact Number</label>
                 <input
                   type="number"
-                  name="contactNumber"
-                  value={employee.contactNumber}
+                  name="emergency_contact_number"
+                  value={employee.emergency_contact_number}
                   onChange={handleChange}
                   required
                 />
@@ -185,8 +195,8 @@ export default function NewUserDetails() {
                 <label>Relationship</label>
                 <input
                   type="text"
-                  name="relationship"
-                  value={employee.relationship}
+                  name="emergency_contact_relation"
+                  value={employee.emergency_contact_relation}
                   onChange={handleChange}
                   required
                 />

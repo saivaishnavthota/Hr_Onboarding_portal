@@ -1,0 +1,111 @@
+import { useState, useEffect } from "react"; 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+// import EmployeeAttendance from "./EmployeeAttendence";
+// import EmployeeUploadDocs from "./EmployeeUploadDocs"
+// import ApplyLeave from "./ApplyLeave";
+// import UpdatePassword from "./UpdatePassword";
+import Logo from "../../assets/Nxzen-logo.jpg"; 
+// import Profile from "./Profile";
+import { Link, Routes, Route, useNavigate } from "react-router-dom";
+import {
+  faCalendarAlt,
+  faPaperPlane,
+  faUpload,
+  faKey,
+  faCircleUser,
+  faCoins,
+  faBars
+} from "@fortawesome/free-solid-svg-icons";
+import "../../Employee/Styles/EmployeeDashboard.css";
+import AccountExpenseApproval from "./AccountExpenseApproval";
+
+export default function AccountManagerDashboard() {
+  const [isOpen, setIsOpen] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) setIsOpen(false);
+      else setIsOpen(true);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const [username, setUsername] = useState("");
+
+  useEffect(() => {
+    
+    const storedUser = localStorage.getItem("username");
+    if (storedUser) {
+      setUsername(storedUser);
+    }
+  }, []);
+
+
+  const menuItems = [
+    { name: "Expense Management", icon: faCoins, path: "submit-expense" },
+    { name: "Set Password", icon: faKey, path: "change-password" },
+  ];
+
+  return (
+    <div className="dashboard">
+      {/* Header */}
+      <header className="header">
+        <div className="logo" onClick={() => navigate("/")}>
+          <img src={Logo} alt="Company Logo" className="logo-img" />
+          <h2 className="logo-text">Employee Dashboard</h2>
+        </div>
+      </header>
+
+      <div className="main">
+        {/* Toggle Sidebar */}
+        <button
+          className="toggle-btn"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <FontAwesomeIcon icon={faBars} />
+        </button>
+
+        {/* Sidebar */}
+        <aside className={`sidebar ${isOpen ? "open" : "collapsed"}`}>
+          <nav>
+        <div className="profile">
+           <FontAwesomeIcon icon={faCircleUser} size="2x" />
+             <span>
+            {username || "Guest"}
+            
+            </span>
+        </div>
+            {menuItems.map((item, idx) => (
+              <div key={idx} className="menu-item">
+                <Link
+                   to={`/employee-dashboard/${item.path}`}
+ 
+                  className="menu-link"
+                  onClick={() => window.scrollTo(0, 0)}
+                >
+                  <FontAwesomeIcon icon={item.icon} className="menu-icon" />
+                  {isOpen && <span className="menu-text">{item.name}</span>}
+                </Link>
+                {!isOpen && <span className="tooltip">{item.name}</span>}
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Content Area */}
+        <main className="content">
+          <Routes>
+            <Route index element={<h3>Welcome to Employee Dashboard</h3>} />
+            <Route path="submit-expense" element={<AccountExpenseApproval/>} />
+            
+            {/* <Route path="profile" element={<Profile />} /> */}
+          </Routes>
+        </main>
+      </div>
+    </div>
+  );
+}

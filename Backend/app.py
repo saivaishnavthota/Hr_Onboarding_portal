@@ -32,7 +32,7 @@ jwt = JWTManager(app)
 conn = psycopg2.connect(
     dbname="Nxzen",
     user="admin",
-    password="nxzen@123",
+    password="rishitha",
     host="localhost",
     port="5432"
 )

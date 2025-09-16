@@ -25,7 +25,7 @@ export default function OnboardingDocs() {
 
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get("/mock-data/hr.json"); 
+      const res = await axios.get("http://127.0.0.1:8000/users/employees");
       setEmployees(res.data);
     } catch (err) {
       console.error(err);
@@ -33,19 +33,33 @@ export default function OnboardingDocs() {
     }
   };
 
-  const handleViewDocuments = async (employee) => {
-    setSelectedEmployee(employee);
-    setShowDocModal(true);
-    setLoadingDocs(true);
-    try {
-      const res = await axios.get("/mock-data/employees.json"); //`http://localhost:5000/api/employees/${employee.id}/documents`
-      setDocuments(res.data);
-    } catch (err) {
-      console.error(err);
-      showToast("Failed to fetch documents", true);
-    }
-    setLoadingDocs(false);
-  };
+const handleViewDocuments = async (employee) => {
+  setSelectedEmployee(employee);
+  setShowDocModal(true);
+  setLoadingDocs(true);
+  try {
+    const res = await axios.get(`http://127.0.0.1:8000/documents/emp/${employee.employeeId}`);
+
+    // Convert object into array
+    const docsArray = Object.entries(res.data)
+      .filter(([key]) => key !== "employeeId" && key !== "uploaded_at") // skip meta fields
+      .map(([key, value]) => ({
+        name: key,
+        status: value ? "Uploaded" : "Missing",
+        
+        required: value.required, // or check from your schema
+        fileUrl: value ? `http://127.0.0.1:8000/documents/${employee.employeeId}/${key}` : null,
+        fileName: `${key}.pdf`
+      }));
+
+    setDocuments(docsArray);
+  } catch (err) {
+    console.error(err);
+    showToast("Failed to fetch documents", true);
+  }
+  setLoadingDocs(false);
+};
+
 
   const handleApproveDocuments = async () => {
     const allRequiredUploaded = documents
@@ -58,9 +72,10 @@ export default function OnboardingDocs() {
     }
 
     try {
+      console.log(selectedEmployee)
       await axios.post(
-        `http://localhost:5000/api/employees/approve-documents`,
-        { employeeId: selectedEmployee.id }
+        "http://127.0.0.1:8000/users/approve-documents",
+        { employeeId: selectedEmployee.employeeId}
       );
 
       setDocuments(documents.map((doc) => ({ ...doc, status: "Approved" })));
@@ -90,7 +105,7 @@ export default function OnboardingDocs() {
   const handleUpdateEmployee = async () => {
     try {
       await axios.put(
-        `http://localhost:5000/api/employees/${selectedEmployee.id}`,
+        "http://127.0.0.1/users/employees",
         editForm
       );
       setEmployees(
@@ -117,14 +132,20 @@ export default function OnboardingDocs() {
   };
 
   const filteredEmployees = employees.filter((emp) => {
-    const matchesSearch =
-      emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "All" || emp.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const name = emp.name 
+  const email = emp.email 
+  const matchesSearch =
+    name.includes(searchQuery) ||
+    email.includes(searchQuery);
 
-  return (
+  const matchesStatus =
+    statusFilter === "All" || emp.status === statusFilter;
+
+  return matchesSearch && matchesStatus;
+});
+
+
+ return (
     <div className="container py-4">
       {/* Toast */}
       {toast.message && (
@@ -157,7 +178,6 @@ export default function OnboardingDocs() {
           <option value="Approved">Approved</option>
         </select>
       </div>
-
       <div className="table-responsive">
         <table className="table table-bordered table-striped text-center">
           <thead>
@@ -232,7 +252,6 @@ export default function OnboardingDocs() {
           </tbody>
         </table>
       </div>
-
       {/* Documents Modal */}
       {showDocModal &&
         ReactDOM.createPortal(
@@ -297,7 +316,6 @@ export default function OnboardingDocs() {
           </div>,
           document.body
         )}
-
       {/* Edit Employee Modal */}
       {showEditModal &&
         ReactDOM.createPortal(
@@ -360,3 +378,4 @@ export default function OnboardingDocs() {
     </div>
   );
 }
+ 

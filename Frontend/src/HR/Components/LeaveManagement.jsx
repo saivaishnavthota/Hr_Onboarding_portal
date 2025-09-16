@@ -16,11 +16,13 @@ export default function LeaveManagement() {
     try {
       setLoading(true);
       const [pendingRes, allRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/hr/pending-leaves"),
-        axios.get("http://localhost:5000/api/hr/all-leaves"),
+        axios.get("http://127.0.0.1:8000/hr/pending-leaves"),
+        axios.get("http://127.0.0.1:8000/hr/all-leaves"),
       ]);
       setPendingLeaves(pendingRes.data);
       setAllRequests(allRes.data);
+      
+console.log("Pending:", pendingRes.data, "All:", allRes.data);
     } catch (err) {
       console.error("Error fetching leaves:", err);
       setToast({ message: "Failed to fetch leave data", isError: true });
@@ -38,7 +40,7 @@ export default function LeaveManagement() {
     try {
       setActionLoading({ id: leaveId, action });
       const res = await axios.post(
-        `http://localhost:5000/api/hr/leave-action/${leaveId}`,
+        `http://127.0.0.1:8000/hr/leave-action/${leaveId}`,
         { action }
       );
 
@@ -110,8 +112,9 @@ export default function LeaveManagement() {
                         <th>From</th>
                         <th>To</th>
                         <th>Days</th>
+                        <th>Reason</th>
                         <th>Action</th>
-                        <th>Status</th>
+                       
                       </tr>
                     </thead>
                     <tbody>
@@ -127,6 +130,7 @@ export default function LeaveManagement() {
                           <td>{leave.start_date}</td>
                           <td>{leave.end_date}</td>
                           <td>{leave.days}</td>
+                          <td>{leave.reason}</td>
                           <td>
                             <button
                               className="btn btn-success btn-sm me-2"
@@ -192,7 +196,9 @@ export default function LeaveManagement() {
                         <th>From</th>
                         <th>To</th>
                         <th>Days</th>
+                        <th>Reason</th>
                         <th>Status</th>
+
                       </tr>
                     </thead>
                     <tbody>
@@ -208,6 +214,7 @@ export default function LeaveManagement() {
                           <td>{leave.start_date}</td>
                           <td>{leave.end_date}</td>
                           <td>{leave.days}</td>
+                          <td>{leave.reason}</td>
                           <td>
                             <span
                               className={`badge ${

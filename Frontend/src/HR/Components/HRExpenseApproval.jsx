@@ -10,16 +10,23 @@ export default function HRExpenseApproval() {
   const [editingStatus, setEditingStatus] = useState({});
   const [toast, setToast] = useState({ message: "", isError: false });
 
+  
+  const [rejectModal, setRejectModal] = useState({
+    isOpen: false,
+    expenseId: null,
+    reason: "",
+  });
+
   useEffect(() => {
     fetchExpenses();
   }, []);
 
   const fetchExpenses = async () => {
     try {
-      const res = await axios.get(`http://localhost:8000/expenses/hr-exp-list`);
+      const res = await axios.get("mock-data.json");
       setExpenses(res.data);
     } catch (err) {
-      console.error("Error fetching HR expenses:", err);
+      console.error("Error fetching expenses:", err);
       showToast("Failed to load expenses", true);
     }
   };
@@ -33,13 +40,21 @@ export default function HRExpenseApproval() {
   };
 
   const saveStatus = async (id) => {
-    try {
-      const status = editingStatus[id];
-      if (!status) return;
+    const status = editingStatus[id];
+    if (!status) return;
 
-      await axios.put(`http://localhost:8000/expenses/hr-upd-status/${id}`, null, {
-        params: { status },
-      });
+
+    if (status === "Rejected") {
+      setRejectModal({ isOpen: true, expenseId: id, reason: "" });
+      return;
+    }
+
+    try {
+      await axios.put(
+        `http://localhost:8000/expenses/mgr-upd-status/${id}`,
+        null,
+        { params: { status } }
+      );
 
       fetchExpenses();
       showToast(`Status updated to "${status}"`, false);
@@ -50,24 +65,52 @@ export default function HRExpenseApproval() {
         return updated;
       });
     } catch (err) {
-      console.error("Error saving HR status:", err);
+      console.error("Error saving Manager status:", err);
       showToast("Failed to update status", true);
     }
   };
 
+  const handleRejectSubmit = async () => {
+    if (!rejectModal.reason.trim()) {
+      showToast("Please provide a rejection reason", true);
+      return;
+    }
+
+    try {
+      await axios.put(
+        `http://localhost:8000/expenses/mgr-upd-status/${rejectModal.expenseId}`,
+        null,
+        { params: { status: "Rejected", reason: rejectModal.reason } }
+      );
+    
+      fetchExpenses();
+      showToast(`Status updated to "Rejected"`, false);
+    
+       setRejectModal({ isOpen: false, expenseId: null, reason: "" });
+
+      setEditingStatus((prev) => {
+        const updated = { ...prev };
+        delete updated[rejectModal.expenseId];
+        return updated;
+      });
+
+    } catch (err) {
+      console.error("Error saving Manager rejection:", err);
+      showToast("Failed to update status", true);
+    }
+  };
 
   const showToast = (message, isError = false) => {
     setToast({ message, isError });
     setTimeout(() => {
       setToast({ message: "", isError: false });
-    }, 2000); 
+    }, 2000);
   };
 
   return (
     <div className="manager-expense-container">
       <h4 className="heading">HR Expense Approvals</h4>
 
-    
       {toast.message && (
         <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
           <FontAwesomeIcon
@@ -91,7 +134,7 @@ export default function HRExpenseApproval() {
         </thead>
         <tbody>
           {expenses.map((exp) => {
-            const currentStatus = exp.status || "pending_hr_approval";
+            const currentStatus = exp.status || "Pending";
             const selectedStatus = editingStatus[exp.id] || currentStatus;
 
             return (
@@ -106,7 +149,10 @@ export default function HRExpenseApproval() {
                     {exp.amount} {exp.currency}
                   </td>
                   <td>
-                    <button className="btn-view" onClick={() => toggleExpand(exp.id)}>
+                    <button
+                      className="btn-view"
+                      onClick={() => toggleExpand(exp.id)}
+                    >
                       {expandedId === exp.id ? "Hide" : "View"}
                     </button>
                   </td>
@@ -119,10 +165,12 @@ export default function HRExpenseApproval() {
                     <select
                       className="dropdown-btn"
                       value={selectedStatus}
-                      onChange={(e) => handleStatusChange(exp.id, e.target.value)}
+                      onChange={(e) =>
+                        handleStatusChange(exp.id, e.target.value)
+                      }
                     >
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Rejected</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Rejected">Rejected</option>
                     </select>
 
                     <button
@@ -139,12 +187,23 @@ export default function HRExpenseApproval() {
                   <tr className="expand-row">
                     <td colSpan="6">
                       <div className="details">
-                        <p><strong>Description:</strong> {exp.description}</p>
-                        <p><strong>Date:</strong> {exp.date}</p>
-                        <p><strong>Tax Included:</strong> {exp.taxIncluded ? "Yes" : "No"}</p>
+                        <p>
+                          <strong>Description:</strong> {exp.description}
+                        </p>
+                        <p>
+                          <strong>Date:</strong> {exp.date}
+                        </p>
+                        <p>
+                          <strong>Tax Included:</strong>{" "}
+                          {exp.taxIncluded ? "Yes" : "No"}
+                        </p>
                         {exp.attachment && (
                           <p>
-                            <a href={exp.attachment} target="_blank" rel="noreferrer">
+                            <a
+                              href={exp.attachment}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
                               View Attachment
                             </a>
                           </p>
@@ -158,6 +217,38 @@ export default function HRExpenseApproval() {
           })}
         </tbody>
       </table>
+
+      
+      {rejectModal.isOpen && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h5>Reason for Rejection</h5>
+            <textarea
+              value={rejectModal.reason}
+              onChange={(e) =>
+                setRejectModal((prev) => ({
+                  ...prev,
+                  reason: e.target.value,
+                }))
+              }
+              placeholder="Enter reason..."
+            />
+            <div className="modal-actions">
+              <button
+                className="btn-cancel"
+                onClick={() =>
+                  setRejectModal({ isOpen: false, expenseId: null, reason: "" })
+                }
+              >
+                Cancel
+              </button>
+              <button className="btn-confirm" onClick={handleRejectSubmit}>
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

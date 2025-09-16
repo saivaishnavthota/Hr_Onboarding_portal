@@ -8,13 +8,14 @@ export default function DocumentCollection() {
   const [employees, setEmployees] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [toast, setToast] = useState({ message: "", isError: false });
+
   const rowsPerPage = 5;
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000";
 
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const res = await axios.get("/mock-data/employees.json");
+        const res = await axios.get(`${API_BASE_URL}/documents/all-documents`);
         setEmployees(res.data);
       } catch (err) {
         console.error("Error fetching employee docs", err);
@@ -22,7 +23,7 @@ export default function DocumentCollection() {
       }
     };
     fetchEmployees();
-  }, []);
+  }, [API_BASE_URL]);
 
   const showToast = (message, isError = false) => {
     setToast({ message, isError });
@@ -57,7 +58,9 @@ export default function DocumentCollection() {
 
   if (!employees.length) return <p>Loading...</p>;
 
-  const docFields = Object.keys(employees[0].documents);
+  // Safe: get document fields from first employee that has documents
+  const firstWithDocs = employees.find(emp => emp.documents && Object.keys(emp.documents).length > 0);
+  const docFields = firstWithDocs ? Object.keys(firstWithDocs.documents) : [];
 
   return (
     <div className="docs-table-wrapper">

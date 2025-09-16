@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react"; 
 import axios from "axios";
 import "../Styles/ApplyLeave.css";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 
 export default function ApplyLeave() {
   const [activeTab, setActiveTab] = useState("apply");
@@ -15,14 +13,9 @@ export default function ApplyLeave() {
   });
   const [pastLeaves, setPastLeaves] = useState([]);
   const [summary, setSummary] = useState({});
-  const [toast, setToast] = useState({ message: "", isError: false });
-  const employee_id = 1; // Replace with logged-in employee id
-
-  // Toast helper
-  const showToast = (message, isError = false) => {
-    setToast({ message, isError });
-    setTimeout(() => setToast({ message: "", isError: false }), 3000);
-  };
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const employee_id = user.id;
+   // Replace with logged-in employee id
 
   // Fetch summary + past leaves
   useEffect(() => {
@@ -30,31 +23,44 @@ export default function ApplyLeave() {
     fetchPastLeaves();
   }, []);
 
-  const fetchSummary = async () => {
-    try {
-      const res = await axios.get(`http://localhost:5000/api/summary/${employee_id}`);
-      setSummary(res.data);
-    } catch (err) {
-      showToast("Failed to fetch summary. Please try again later.", true);
-    }
-  };
+const fetchSummary = async () => {
+  try {
+    const res = await axios.get(`http://127.0.0.1:8000/leave_balances/${employee_id}`);
+    
+    // map backend fields to frontend expected keys
+    const mappedSummary = {
+      sick_allocated: res.data.sick_leaves || 0,
+      casual_allocated: res.data.casual_leaves || 0,
+      annual_allocated: res.data.paid_leaves || 0,
+      sickApplied: 0,   // you’ll populate this from applied leaves
+      casualApplied: 0,
+      annualApplied: 0,
+    };
+
+    setSummary(mappedSummary);
+  } catch (err) {
+    alert("Failed to fetch summary. Please try again later.");
+  }
+};
+
 
   const fetchPastLeaves = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/leaves/${employee_id}`);
+      const res = await axios.get(`http://127.0.0.1:8000/all_leaves/${employee_id}`);
       setPastLeaves(res.data);
     } catch (err) {
-      showToast("Failed to fetch past leaves. Please try again later.", true);
+      alert("Failed to fetch past leaves. Please try again later.");
     }
   };
 
-  const calculateWorkingDays = (start, end, halfDay = false) => {
-    let current = new Date(start);
-    const endDate = new Date(end);
+  // ✅ Calculate working days excluding Saturday & Sunday
+  const calculateWorkingDays = (start_date, end_date, halfDay = false) => {
+    let current = new Date(start_date);
+    const endDate = new Date(end_date);
     let days = 0;
 
     while (current <= endDate) {
-      const day = current.getDay(); 
+      const day = current.getDay(); // 0 = Sunday, 6 = Saturday
       if (day !== 0 && day !== 6) {
         days++;
       }
@@ -62,11 +68,12 @@ export default function ApplyLeave() {
     }
 
     if (halfDay && days > 0) {
-      return days - 0.5;
+      return days - 0.5; // subtract half day
     }
     return days;
   };
 
+  // Input change
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
@@ -75,6 +82,7 @@ export default function ApplyLeave() {
     });
   };
 
+  // ✅ Remaining leaves helper
   const getRemainingLeaves = (type) => {
     if (type === "Sick") {
       return (summary.sick_allocated || 0) - (summary.sickApplied || 0);
@@ -86,11 +94,12 @@ export default function ApplyLeave() {
     return 0;
   };
 
+  // Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.leaveType || !formData.startDate || !formData.endDate || !formData.reason) {
-      showToast("⚠️ Please fill in all required fields.", true);
+      alert("⚠️ Please fill in all required fields.");
       return;
     }
 
@@ -101,29 +110,37 @@ export default function ApplyLeave() {
     );
 
     if (totalDays <= 0) {
-      showToast("⚠️ Invalid date range. Please select valid dates.", true);
+      alert("⚠️ Invalid date range. Please select valid dates.");
       return;
     }
 
+    // ✅ Check available leaves before applying
     const remaining = getRemainingLeaves(formData.leaveType);
     if (totalDays > remaining) {
-      showToast(`⚠️ You don't have enough ${formData.leaveType} leaves. Remaining: ${remaining}`, true);
+      alert(`⚠️ You don't have enough ${formData.leaveType} leaves. Remaining: ${remaining}`);
       return;
     }
 
     try {
-      await axios.post("http://localhost:5000/api/leaves", {
-        employee_id,
-        ...formData,
-        totalDays,
-      });
+      
+      await axios.post("http://127.0.0.1:8000/apply_leave", {
+    employee_id,
+  leave_type: formData.leaveType,
+  half_day: formData.halfDay,
+  start_date: formData.startDate,
+  end_date: formData.endDate,
+  reason: formData.reason,
+  no_of_days: totalDays,
+});
 
-      showToast("✅ Leave applied successfully!");
+      alert("✅ Leave applied successfully!");
 
+      // Refresh data + redirect to past
       fetchSummary();
       fetchPastLeaves();
       setActiveTab("past");
 
+      // Reset form
       setFormData({
         leaveType: "",
         halfDay: false,
@@ -133,7 +150,8 @@ export default function ApplyLeave() {
       });
 
     } catch (err) {
-      showToast("❌ Failed to apply leave. Please try again later.", true);
+      
+      alert("❌ Failed to apply leave. Please try again later.");
     }
   };
 
@@ -147,7 +165,7 @@ export default function ApplyLeave() {
   return (
     <div className="apply-leave-container">
       {/* ✅ Toast UI */}
-      {toast.message && (
+      {/* {toast.message && (
         <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
           <FontAwesomeIcon
             icon={toast.isError ? faTimesCircle : faCheckCircle}
@@ -155,7 +173,7 @@ export default function ApplyLeave() {
           />
           {toast.message}
         </div>
-      )}
+      )} */}
 
       <div className="heading"><h2>Apply a Leave</h2></div>
 
@@ -170,7 +188,6 @@ export default function ApplyLeave() {
           <p>{(summary.sick_allocated + summary.casual_allocated + summary.annual_allocated) || 0}</p>
         </div>
       </div>
-
       <div className="summary-row">
         <div className="summary-card sick-card">
           <h4>Sick Leave</h4>
@@ -183,7 +200,6 @@ export default function ApplyLeave() {
           <p>Applied: {summary.casualApplied}</p>
         </div>
       </div>
-
       <div className="summary-row center">
         <div className="summary-card annual-card">
           <h4>Annual Leave</h4>
@@ -191,7 +207,6 @@ export default function ApplyLeave() {
           <p>Applied: {summary.annualApplied}</p>
         </div>
       </div>
-
       {/* Form with tabs */}
       <div className="form-container">
         {/* Tabs */}
@@ -209,7 +224,6 @@ export default function ApplyLeave() {
             Past Leaves
           </div>
         </div>
-
         {/* Apply Leave Form */}
         {activeTab === "apply" && (
           <form className="leave-form" onSubmit={handleSubmit}>
@@ -227,7 +241,6 @@ export default function ApplyLeave() {
                 <option value="Annual">Annual Leave</option>
               </select>
             </label>
-
             <div className="halfday-row">
               <label className="halfday-label">
                 <input
@@ -239,7 +252,6 @@ export default function ApplyLeave() {
                 Half Day
               </label>
             </div>
-
             <div className="date-row">
               <label>
                 Start Date:
@@ -251,7 +263,6 @@ export default function ApplyLeave() {
                   required
                 />
               </label>
-
               <label>
                 End Date:
                 <input
@@ -285,7 +296,6 @@ export default function ApplyLeave() {
             </button>
           </form>
         )}
-
         {/* Past Leaves */}
         {activeTab === "past" && (
           <div className="past-leaves">
