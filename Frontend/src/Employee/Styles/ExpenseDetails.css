@@ -193,3 +193,6 @@ form textarea {
     justify-content: space-between;
   }
 }
+.rejection-reason {
+  color: #d9534f; 
+}

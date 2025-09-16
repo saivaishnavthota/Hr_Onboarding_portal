@@ -260,6 +260,14 @@ export default function ExpenseDetails() {
                         <strong>Tax Included:</strong>{" "}
                         {exp.tax_included ? "Yes" : "No"}
                       </p>
+
+
+    {exp.status === "rejected" && exp.reason && (
+      <p className="rejection-reason">
+        <strong>Rejection Reason:</strong> {exp.reason}
+      </p>
+    )}
+
                       {exp.attachments &&
                         exp.attachments.map((att) => (
                           <p key={att.attachment_id}>
