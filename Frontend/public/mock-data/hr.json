@@ -1,4 +1,16 @@
 [
-  { "id": 1, "name": "Ravi Kumar", "email": "ravi@example.com", "type": "Full-Time", "status": "Pending" },
-  { "id": 2, "name": "Sneha Reddy", "email": "sneha@example.com", "type": "Intern", "status": "Approved" }
+  {
+    "id": 1,
+    "name": "Alice Johnson",
+    "email": "alice.johnson@example.com",
+    "type": "Full-Time",
+    "status": "Pending"
+  },
+  {
+    "id": 2,
+    "name": "Bob Smith",
+    "email": "bob.smith@example.com",
+    "type": "Intern",
+    "status": "Approved"
+  }
 ]

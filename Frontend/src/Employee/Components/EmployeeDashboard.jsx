@@ -8,14 +8,13 @@ import Logo from "../../assets/Nxzen-logo.jpg";
 import Profile from "./Profile";
 import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import {
-  faArrowLeft,
-  faArrowRight,
   faCalendarAlt,
   faPaperPlane,
   faUpload,
   faKey,
   faCircleUser,
-  faCoins
+  faCoins,
+  faBars
 } from "@fortawesome/free-solid-svg-icons";
 import "../Styles/EmployeeDashboard.css"
 import ExpenseDetails from "./ExpenseDetails";
@@ -62,17 +61,6 @@ export default function EmployeeDashboard() {
           <img src={Logo} alt="Company Logo" className="logo-img" />
           <h2 className="logo-text">Employee Dashboard</h2>
         </div>
-        <div className="profile"  style={{
-        display: "flex",
-        alignItems: "center",  
-        gap: "8px",
-        height: "100%",   
-      }}>
-           <FontAwesomeIcon icon={faCircleUser} size="2x" />
-             <span>
-            {username || "Guest"}
-            </span>
-        </div>
       </header>
 
       <div className="main">
@@ -81,12 +69,19 @@ export default function EmployeeDashboard() {
           className="toggle-btn"
           onClick={() => setIsOpen(!isOpen)}
         >
-          <FontAwesomeIcon icon={isOpen ? faArrowLeft : faArrowRight} />
+          <FontAwesomeIcon icon={faBars} />
         </button>
 
         {/* Sidebar */}
         <aside className={`sidebar ${isOpen ? "open" : "collapsed"}`}>
           <nav>
+        <div className="profile">
+           <FontAwesomeIcon icon={faCircleUser} size="2x" />
+             <span>
+            {username || "Guest"}
+            
+            </span>
+        </div>
             {menuItems.map((item, idx) => (
               <div key={idx} className="menu-item">
                 <Link

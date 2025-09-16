@@ -1,79 +1,92 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../Styles/ManagerExpenseApproval.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 
 export default function ManagerExpenseApproval() {
   const [expenses, setExpenses] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
-  const [editingStatus, setEditingStatus] = useState({});
-  const [toast, setToast] = useState({ message: null, isError: false });
-
-  // Show toast for 3 seconds
-  const showToast = (message, isError = false) => {
-    setToast({ message, isError });
-    setTimeout(() => setToast({ message: null, isError: false }), 3000);
-  };
-
-  // Fetch all expenses
+  const [editingStatus, setEditingStatus] = useState({}); // store selected status
+    const [toast, setToast] = useState({ message: "", isError: false });
+ 
   useEffect(() => {
-    const fetchExpenses = async () => {
-      try {
-        const res = await axios.get("http://localhost:5000/api/expenses");
-        setExpenses(res.data);
-      } catch (err) {
-        console.error("Error fetching expenses:", err);
-        showToast("Failed to fetch expenses", true);
-      }
-    };
     fetchExpenses();
   }, []);
-
+ 
+  const fetchExpenses = async () => {
+    try {
+      const res = await axios.get("/mock-data/managers.json");
+      setExpenses(res.data);
+    } catch (err) {
+      console.error("Error fetching expenses:", err);
+      showToast("Failed to load expenses", true);
+    }
+  };
+ 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
   };
+ 
 
   const handleStatusChange = (id, newStatus) => {
     setEditingStatus((prev) => ({ ...prev, [id]: newStatus }));
   };
-
+ 
+  
   const saveStatus = async (id) => {
     try {
-      await axios.put(`http://localhost:5000/api/expenses/${id}`, {
-        status: editingStatus[id],
+      const status = editingStatus[id];
+      if (!status) return;
+ 
+      await axios.put(`http://localhost:8000/expenses/mgr-upd-status/${id}`, null, {
+        params: { status }, 
       });
-      // Refetch expenses after update
-      const res = await axios.get("http://localhost:5000/api/expenses");
-      setExpenses(res.data);
-      showToast("Expense status updated successfully!");
+ 
+      fetchExpenses(); 
+      showToast(`Status updated to "${status}"`, false);
+
       setEditingStatus((prev) => {
         const updated = { ...prev };
         delete updated[id];
         return updated;
       });
     } catch (err) {
-      console.error("Error saving status:", err);
-      showToast("Failed to update expense status", true);
+      console.error("Error saving Manager status:", err);
+      showToast("Failed to update status", true);
     }
   };
 
+ const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+    setTimeout(() => {
+      setToast({ message: "", isError: false });
+    }, 2000); 
+  };
+
   return (
-    <div className="manager-container">
-      {/* Toast Notification */}
+    <div className="manager-expense-container">
+      <h4 className="heading">Manager Expense Approvals</h4>
+        
+       
       {toast.message && (
         <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+          <FontAwesomeIcon
+            icon={toast.isError ? faTimesCircle : faCheckCircle}
+            className="me-2"
+          />
           {toast.message}
         </div>
       )}
 
-      <h4 className="heading">Manager Expense Approvals</h4>
 
       <table className="manager-table">
         <thead>
-          <tr>
-            <th>Employee</th>
-            <th>Email</th>
+          <tr className="text-center">
+            <th>Employee Details</th>
             <th>Category</th>
             <th>Amount</th>
+            <th>Details</th>
             <th>Status</th>
             <th>Action</th>
           </tr>
@@ -82,15 +95,22 @@ export default function ManagerExpenseApproval() {
           {expenses.map((exp) => {
             const currentStatus = exp.status || "Pending";
             const selectedStatus = editingStatus[exp.id] || currentStatus;
-
+ 
             return (
               <React.Fragment key={exp.id}>
-                <tr>
-                  <td>{exp.employeeName}</td>
-                  <td>{exp.employeeEmail}</td>
+                <tr className="text-center">
+                  <td className="details">
+                    <b>{exp.employeeName}</b> <br />
+                    <small>{exp.employeeEmail}</small>
+                  </td>
                   <td>{exp.category}</td>
                   <td>
                     {exp.amount} {exp.currency}
+                  </td>
+                   <td>
+                    <button className="btn-view" onClick={() => toggleExpand(exp.id)}>
+                      {expandedId === exp.id ? "Hide" : "View"}
+                    </button>
                   </td>
                   <td>
                     <span className={`status ${currentStatus.toLowerCase()}`}>
@@ -98,20 +118,12 @@ export default function ManagerExpenseApproval() {
                     </span>
                   </td>
                   <td>
-                    <button
-                      className="btn-view"
-                      onClick={() => toggleExpand(exp.id)}
-                    >
-                      {expandedId === exp.id ? "Hide" : "View"}
-                    </button>
-
-                    <select
+                    <select   className="dropdown-btn"
                       value={selectedStatus}
                       onChange={(e) =>
                         handleStatusChange(exp.id, e.target.value)
                       }
                     >
-                      <option value="Pending">Pending</option>
                       <option value="Approved">Approved</option>
                       <option value="Rejected">Rejected</option>
                     </select>
@@ -119,13 +131,13 @@ export default function ManagerExpenseApproval() {
                     <button
                       className="btn-save"
                       onClick={() => saveStatus(exp.id)}
-                      disabled={selectedStatus === currentStatus}
+                      disabled={selectedStatus === currentStatus} // ✅ disable if unchanged
                     >
                       Save
                     </button>
                   </td>
                 </tr>
-
+ 
                 {expandedId === exp.id && (
                   <tr className="expand-row">
                     <td colSpan="6">
@@ -147,7 +159,7 @@ export default function ManagerExpenseApproval() {
                               target="_blank"
                               rel="noreferrer"
                             >
-                              View Attachment
+                            View Attachment
                             </a>
                           </p>
                         )}
@@ -163,3 +175,5 @@ export default function ManagerExpenseApproval() {
     </div>
   );
 }
+ 
+ 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react"; 
 import axios from "axios";
 import "../Styles/ApplyLeave.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 
 export default function ApplyLeave() {
   const [activeTab, setActiveTab] = useState("apply");
@@ -13,7 +15,14 @@ export default function ApplyLeave() {
   });
   const [pastLeaves, setPastLeaves] = useState([]);
   const [summary, setSummary] = useState({});
+  const [toast, setToast] = useState({ message: "", isError: false });
   const employee_id = 1; // Replace with logged-in employee id
+
+  // Toast helper
+  const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+    setTimeout(() => setToast({ message: "", isError: false }), 3000);
+  };
 
   // Fetch summary + past leaves
   useEffect(() => {
@@ -26,7 +35,7 @@ export default function ApplyLeave() {
       const res = await axios.get(`http://localhost:5000/api/summary/${employee_id}`);
       setSummary(res.data);
     } catch (err) {
-      alert("Failed to fetch summary. Please try again later.");
+      showToast("Failed to fetch summary. Please try again later.", true);
     }
   };
 
@@ -35,18 +44,17 @@ export default function ApplyLeave() {
       const res = await axios.get(`http://localhost:5000/api/leaves/${employee_id}`);
       setPastLeaves(res.data);
     } catch (err) {
-      alert("Failed to fetch past leaves. Please try again later.");
+      showToast("Failed to fetch past leaves. Please try again later.", true);
     }
   };
 
-  // ✅ Calculate working days excluding Saturday & Sunday
   const calculateWorkingDays = (start, end, halfDay = false) => {
     let current = new Date(start);
     const endDate = new Date(end);
     let days = 0;
 
     while (current <= endDate) {
-      const day = current.getDay(); // 0 = Sunday, 6 = Saturday
+      const day = current.getDay(); 
       if (day !== 0 && day !== 6) {
         days++;
       }
@@ -54,12 +62,11 @@ export default function ApplyLeave() {
     }
 
     if (halfDay && days > 0) {
-      return days - 0.5; // subtract half day
+      return days - 0.5;
     }
     return days;
   };
 
-  // Input change
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
@@ -68,7 +75,6 @@ export default function ApplyLeave() {
     });
   };
 
-  // ✅ Remaining leaves helper
   const getRemainingLeaves = (type) => {
     if (type === "Sick") {
       return (summary.sick_allocated || 0) - (summary.sickApplied || 0);
@@ -80,12 +86,11 @@ export default function ApplyLeave() {
     return 0;
   };
 
-  // Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.leaveType || !formData.startDate || !formData.endDate || !formData.reason) {
-      alert("⚠️ Please fill in all required fields.");
+      showToast("⚠️ Please fill in all required fields.", true);
       return;
     }
 
@@ -96,14 +101,13 @@ export default function ApplyLeave() {
     );
 
     if (totalDays <= 0) {
-      alert("⚠️ Invalid date range. Please select valid dates.");
+      showToast("⚠️ Invalid date range. Please select valid dates.", true);
       return;
     }
 
-    // ✅ Check available leaves before applying
     const remaining = getRemainingLeaves(formData.leaveType);
     if (totalDays > remaining) {
-      alert(`⚠️ You don't have enough ${formData.leaveType} leaves. Remaining: ${remaining}`);
+      showToast(`⚠️ You don't have enough ${formData.leaveType} leaves. Remaining: ${remaining}`, true);
       return;
     }
 
@@ -114,14 +118,12 @@ export default function ApplyLeave() {
         totalDays,
       });
 
-      alert("✅ Leave applied successfully!");
+      showToast("✅ Leave applied successfully!");
 
-      // Refresh data + redirect to past
       fetchSummary();
       fetchPastLeaves();
       setActiveTab("past");
 
-      // Reset form
       setFormData({
         leaveType: "",
         halfDay: false,
@@ -131,7 +133,7 @@ export default function ApplyLeave() {
       });
 
     } catch (err) {
-      alert("❌ Failed to apply leave. Please try again later.");
+      showToast("❌ Failed to apply leave. Please try again later.", true);
     }
   };
 
@@ -144,6 +146,17 @@ export default function ApplyLeave() {
 
   return (
     <div className="apply-leave-container">
+      {/* ✅ Toast UI */}
+      {toast.message && (
+        <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+          <FontAwesomeIcon
+            icon={toast.isError ? faTimesCircle : faCheckCircle}
+            className="me-2"
+          />
+          {toast.message}
+        </div>
+      )}
+
       <div className="heading"><h2>Apply a Leave</h2></div>
 
       {/* Top summary cards */}
@@ -302,8 +315,10 @@ export default function ApplyLeave() {
                       <td>{leave.halfDay ? "Yes" : "No"}</td>
                       <td>{leave.reason}</td>
                       <td>
-                        <button disabled>{leave.status}</button>
-                      </td>
+  <button className={`status-btn ${leave.status.toLowerCase()}`}>
+    {leave.status}
+  </button>
+</td>
                     </tr>
                   ))}
                 </tbody>

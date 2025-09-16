@@ -20,6 +20,9 @@ import ExpenseDetails from "./Employee/Components/ExpenseDetails";
 import EmployeeForm from "./HR/Components/EmployeeForm";
 import HRExpenseApproval from "./HR/Components/HRExpenseApproval";
 import ManagerAttendance from "./Manager/Components/ManagerAttendance";
+import ReqForm from "./AccountManager/Components/ReqForm";
+import DocumentCollection from "./HR/Components/DocumentCollection";
+import ManagerExpenseApproval from "./Manager/Components/ManagerExpenseApproval"
 function App() {
   return (
     <Routes>
@@ -48,7 +51,7 @@ function App() {
         }
       />
   </Routes>
-
+ /* {<EmployeeAttendence/> }*/
   )
 }
 

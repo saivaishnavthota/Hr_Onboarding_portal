@@ -1,6 +1,7 @@
-.manager-container {
-  max-width: 900px;
-  margin: 50px auto;
+.manager-expense-container {
+  max-width: 1200px;
+  margin: auto;
+  margin-top:50px;
   padding: 20px;
   background: #fff;
   border-radius: 10px;
@@ -14,12 +15,16 @@
   width: 100%;
   border-collapse: collapse;
 }
-
+th{
+  font-weight: 600;
+}
+.details{
+  text-align: left;
+}
 .manager-table th,
 .manager-table td {
   padding: 12px;
   border: 1px solid #ddd;
-  text-align: left;
 }
 
 .manager-table th {
@@ -31,29 +36,39 @@
   padding: 4px 8px;
   border-radius: 4px;
 }
-.status.pending {
-  color: orange;
-}
+
 .status.approved {
-  color: green;
+  background-color: #dcfce7;
+  color: #15803d; 
+  border-radius: 9999px;   
+  font-size: 0.75rem;
+  font-weight: 500; 
+ 
 }
 .status.rejected {
-  color: red;
+  background-color: #fee2e2; 
+   color: #b91c1c;   
+   border-radius: 9999px;    /* pill shape */
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .btn-view,
 .btn-save {
-  margin: 0 4px;
+  margin: 5px 4px;
   padding: 6px 10px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
 }
 
-.btn-view {
-  background: #007bff;
-  color: white;
+.btn-view{
+  border-radius: 9999px;
+  border: 1px solid #007bff;
+  background-color: white;
+  color:#007bff;
 }
+
 .btn-save {
   background: teal;
   color: white;
@@ -66,36 +81,39 @@
 .details {
   padding: 10px;
 }
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-  .manager-table,
-  .manager-table thead,
-  .manager-table tbody,
-  .manager-table th,
-  .manager-table td,
-  .manager-table tr {
-    display: block;
-  }
-
-  .manager-table tr {
-    margin-bottom: 15px;
-  }
-
-  .manager-table td {
-    padding: 10px;
-    border: none;
-    position: relative;
-  }
-
-  .manager-table td::before {
-    content: attr(data-label);
-    font-weight: bold;
-    display: block;
-    margin-bottom: 5px;
-  }
-}
 .btn-save:disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+.dropdown {
+  position: relative;
+  display: inline-block;
+  
+}
+
+.dropdown-btn {
+  color: rgb(3, 3, 3);
+ padding: 10px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  margin-right: 10px;
+}
+
+@media (max-width: 768px) {
+  .manager-expense-container{
+    overflow: auto;
+  }
+ .dropdown {
+  position:relative;
+  display: inline-block;
+}
+
+.dropdown-btn {
+  color: rgb(3, 3, 3);
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  margin-right: 10px;
+}
+
 }

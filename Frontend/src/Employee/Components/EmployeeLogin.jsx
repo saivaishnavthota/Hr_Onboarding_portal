@@ -22,7 +22,7 @@ const EmployeeLogin = () => {
   });
 
   const [toast, setToast] = useState({ message: null, isError: false });
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000";
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -66,7 +66,9 @@ const EmployeeLogin = () => {
           email: data.email,
           onboarding_status: data.onboarding_status,
         })
+        
       );
+      console.log(data)
 
       setToast({ message: data.message || "Login successful!", isError: false });
 

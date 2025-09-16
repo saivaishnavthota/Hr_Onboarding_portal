@@ -15,9 +15,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 9999; /* increase this */
+  z-index: 9999;
+  overflow-y: auto; /* 🔹 allow scrolling inside overlay */
+  padding: 20px;    /* 🔹 so modal has space at top & bottom */
 }
-
 
 .modal-card {
   background: #fff;
@@ -26,7 +27,9 @@
   max-width: 800px;
   width: 90%;
   position: relative;
-  z-index: 10000; /* higher than overlay */
+  z-index: 10000;
+  max-height: 90vh;   /* 🔹 limit modal height */
+  overflow-y: auto;   /* 🔹 scroll only content */
 }
 
 
@@ -169,7 +172,23 @@
   text-align: right;
   margin-top: 10px;
 }
+.close-btn {
+ background-color: #6c757d;
+ border-radius: 9999px;
+ padding: 10px 20px;
+  
+}
 
+.update-btn {
+  background-color: #007bff;
+  border-radius: 9999px;
+  padding: 10px 20px;
+}
+.cancel-btn {
+  background-color: #6c757d;
+  border-radius: 9999px;
+  padding: 10px 20px;
+}
 /* Employee type pill */
 .type {
   display: inline-block;

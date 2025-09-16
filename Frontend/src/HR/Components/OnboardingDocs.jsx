@@ -25,7 +25,7 @@ export default function OnboardingDocs() {
 
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/employees");
+      const res = await axios.get("/mock-data/hr.json"); 
       setEmployees(res.data);
     } catch (err) {
       console.error(err);
@@ -38,7 +38,7 @@ export default function OnboardingDocs() {
     setShowDocModal(true);
     setLoadingDocs(true);
     try {
-      const res = await axios.get(`http://localhost:5000/api/employees/${employee.id}/documents`);
+      const res = await axios.get("/mock-data/employees.json"); //`http://localhost:5000/api/employees/${employee.id}/documents`
       setDocuments(res.data);
     } catch (err) {
       console.error(err);
@@ -286,9 +286,8 @@ export default function OnboardingDocs() {
                   </div>
                 </>
               )}
-              <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
+              <div  className="modal-footer">
+                <button className="close-btn"
                   onClick={() => setShowDocModal(false)}
                 >
                   Close
@@ -340,15 +339,15 @@ export default function OnboardingDocs() {
                   />
                 </div>
               </div>
-              <div className="modal-footer mt-3">
+              <div className="modal-footer mt-3 gap-3">
                 <button
-                  className="btn btn-primary me-2"
+                  className="update-btn"
                   onClick={handleUpdateEmployee}
                 >
                   Update
                 </button>
                 <button
-                  className="btn btn-secondary"
+                  className="cancel-btn"
                   onClick={() => setShowEditModal(false)}
                 >
                   Cancel

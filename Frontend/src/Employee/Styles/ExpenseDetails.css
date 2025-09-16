@@ -84,9 +84,6 @@ form textarea {
   min-width: 150px;
 }
 
-/* Checkbox row */
-/* Checkbox row */
-/* Checkbox row */
 
 .checkbox-label{
   display: inline-block;           
@@ -131,17 +128,17 @@ form textarea {
     border-radius: 25px;;
 }
 
-/* Expense history */
+
 .history-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  right: 0px;
 }
 
 .history-item {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  justify-content: space-between;
   padding: 14px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -152,30 +149,36 @@ form textarea {
   font-size: 14px;
 }
 
-.history-item span {
-  font-size: 14px;
-  color: #374151;
-}
-
-/* Status badge */
-.status {
+ .status {
   padding: 14px 12px;
   border-radius: 9999px;
-  font-size: 12px;
-  background: #fef3c7; 
-  align-self: flex-start;
   margin-left: 10px;
-}
+} 
 .status-approved {
-  color: rgb(255, 66, 66);   /* 🔹 Approved = red */
+  background-color: #dcfce7; 
+  color: #15803d;           
+  padding:  0.75rem 0.5rem;
+  border-radius: 9999px;    
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .status-rejected {
-  color: gray;  /* or another color for rejected */
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;  /* or another color for rejected */
 }
 
 .status-pending {
-  color: orange; /* Pending = orange */
+  background-color:#f79047;; /* Tailwind orange-500 */
+  color: white;
+  padding: 0.75rem ;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;/* Pending = orange */
 }
 
 @media (min-width: 600px) {

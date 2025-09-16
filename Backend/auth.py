@@ -8,7 +8,7 @@ from models.user_model import User
 from database import get_session
 
 SECRET_KEY = "super-secret-key"
-ALGORITHM = "HS256"
+ALGORITHM = "SH256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
