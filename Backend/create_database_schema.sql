@@ -1121,3 +1121,158 @@ values(e_emp_id,e_full_name,e_contact_no,e_personal_mail,e_doj,e_dob,e_address,e
 e_grad_year,e_w_exp,e_eme_c_name,e_eme_c_no,e_eme_c_rel);
 end;
 $$;
+
+
+
+CREATE OR REPLACE PROCEDURE emp_details(
+    e_emp_id integer,
+    e_full_name character varying,
+    e_contact_no character varying,
+    e_personal_mail character varying,
+   
+    e_dob date,
+    e_address text,
+    e_gender character varying,
+    e_grad_year integer,
+    e_w_exp integer,
+    e_eme_c_name character varying,
+    e_eme_c_no character varying,
+    e_eme_c_rel character varying
+)
+LANGUAGE plpgsql
+AS $procedure$
+BEGIN
+    INSERT INTO onboarding_emp_details (
+        employee_id,
+        full_name,
+        contact_no,
+        personal_email,
+        
+        dob,
+        address,
+        gender,
+        graduation_year,
+        work_experience_years,
+        emergency_contact_name,
+        emergency_contact_number,
+        emergency_contact_relation
+    )
+    VALUES (
+        e_emp_id,
+        e_full_name,
+        e_contact_no,
+        e_personal_mail,
+       
+        e_dob,
+        e_address,
+        e_gender,
+        e_grad_year,
+        e_w_exp,
+        e_eme_c_name,
+        e_eme_c_no,
+        e_eme_c_rel
+    )
+    ON CONFLICT (employee_id) DO UPDATE
+    SET full_name = EXCLUDED.full_name,
+        contact_no = EXCLUDED.contact_no,
+        personal_email = EXCLUDED.personal_email,
+       
+        dob = EXCLUDED.dob,
+        address = EXCLUDED.address,
+        gender = EXCLUDED.gender,
+        graduation_year = EXCLUDED.graduation_year,
+        work_experience_years = EXCLUDED.work_experience_years,
+        emergency_contact_name = EXCLUDED.emergency_contact_name,
+        emergency_contact_number = EXCLUDED.emergency_contact_number,
+        emergency_contact_relation = EXCLUDED.emergency_contact_relation;
+END;
+$procedure$;
+
+CREATE OR REPLACE PROCEDURE approve_employee(p_onboarding_id INT, OUT new_emp_id INT)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+   
+    INSERT INTO employees (name, email, role,employment_type ,o_status, created_at)
+    SELECT name, email, role,type, TRUE, now()
+    FROM onboarding_employees
+    WHERE id = p_onboarding_id
+    RETURNING id INTO new_emp_id;
+
+   
+    INSERT INTO employee_details (
+        employee_id, full_name, contact_no, personal_email, 
+        dob, address, gender, graduation_year,
+        work_experience_years, emergency_contact_name, 
+        emergency_contact_number, emergency_contact_relation,
+        created_at
+    )
+    SELECT new_emp_id, full_name, contact_no, personal_email, 
+           dob, address, gender, graduation_year,
+           work_experience_years, emergency_contact_name,
+           emergency_contact_number, emergency_contact_relation,
+           now()
+    FROM onboarding_emp_details
+    WHERE employee_id = p_onboarding_id;
+
+   
+     INSERT INTO documents (
+        employee_id, aadhar, pan, latest_graduation_certificate, updated_resume,
+        offer_letter, latest_compensation_letter, experience_relieving_letter,
+        latest_3_months_payslips, form16_or_12b_or_taxable_income, ssc_certificate,
+        hsc_certificate, hsc_marksheet, graduation_marksheet, postgraduation_marksheet,
+        postgraduation_certificate, passport, uploaded_at
+    )
+    SELECT new_emp_id, aadhar, pan, latest_graduation_certificate, updated_resume,
+           offer_letter, latest_compensation_letter, experience_relieving_letter,
+           latest_3_months_payslips, form16_or_12b_or_taxable_income, ssc_certificate,
+           hsc_certificate, hsc_marksheet, graduation_marksheet, postgraduation_marksheet,
+           postgraduation_certificate, passport, now()
+    FROM onboarding_emp_docs
+    WHERE employee_id = p_onboarding_id;
+
+  
+    DELETE FROM onboarding_employees WHERE id = p_onboarding_id;
+    DELETE FROM onboarding_emp_details WHERE employee_id = p_onboarding_id;
+    DELETE FROM onboarding_emp_docs WHERE employee_id = p_onboarding_id;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE assign_employee(
+    IN p_employee_id INT,
+    IN p_location_id INT,
+    IN p_doj DATE,
+    IN p_company_email TEXT,
+    IN p_managers INT[],
+    IN p_hrs INT[]
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    
+    IF NOT EXISTS (SELECT 1 FROM employees WHERE id = p_employee_id) THEN
+        RAISE EXCEPTION 'Employee with id % not found', p_employee_id;
+    END IF;
+
+   
+    UPDATE employees
+    SET doj = p_doj,
+        location_id = p_location_id,
+        company_email = p_company_email
+    WHERE id = p_employee_id;
+
+
+    DELETE FROM employee_managers WHERE employee_id = p_employee_id;
+    INSERT INTO employee_managers (employee_id, manager_id)
+    SELECT p_employee_id, unnest(p_managers)
+    LIMIT 3;
+
+   
+    DELETE FROM employee_hrs WHERE employee_id = p_employee_id;
+    INSERT INTO employee_hrs (employee_id, hr_id)
+    SELECT p_employee_id, unnest(p_hrs)
+    LIMIT 2;
+
+END;
+$$;

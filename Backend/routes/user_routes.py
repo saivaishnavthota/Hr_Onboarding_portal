@@ -17,9 +17,6 @@ router = APIRouter(prefix="/users", tags=["Users"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ----------------------------
-# Create Employee (HR only)
-# ----------------------------
 @router.post("/hr/create_employee", response_model=UserResponse)
 async def create_employee(
     user: UserCreate,
@@ -55,6 +52,7 @@ async def create_employee(
         
         message=f"Employee created successfully with ID: {new_user.id}"
     )
+
 
 @router.post("/hr/approve", response_model=UserHrAccept)
 async def hr_accept(data: HrApproveRequest, db: Session = Depends(get_session)):

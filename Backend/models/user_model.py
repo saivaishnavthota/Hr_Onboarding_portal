@@ -14,3 +14,4 @@ class User(SQLModel, table=True):
     created_at: Optional[datetime] = Field(default_factory=datetime.now)
     manager_id: Optional[int] = Field(default=None, foreign_key="employees.id")
     hr_id: Optional[int] = Field(default=None, foreign_key="employees.id")
+    

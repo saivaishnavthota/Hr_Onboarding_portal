@@ -105,7 +105,7 @@ export default function EmployeeUploadDocs() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await axios.get(`${API_BASE_URL}/documents/${employeeId}`, { withCredentials: true });
+        const response = await axios.get(`${API_BASE_URL}/documents/emp/${employeeId}`, { withCredentials: true });
         const data = response.data;
 
         const fetchedFiles = {};
