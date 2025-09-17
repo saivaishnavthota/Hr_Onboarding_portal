@@ -22,8 +22,8 @@ export default function ExpenseDetails() {
   });
   const [expenses, setExpenses] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
- 
-  // Get current employee ID
+ const [expenseDetails, setExpenseDetails] = useState([]);
+
   const user = JSON.parse(localStorage.getItem("user"));
   const employeeId = user?.id;
  
@@ -106,10 +106,25 @@ export default function ExpenseDetails() {
       attachment: null,
     });
   };
- 
-  const toggleExpand = (id) => {
-    setExpandedId(expandedId === id ? null : id);
-  };
+ const fetchExpenseDetails = async (requestId) => {
+  try {
+    const res = await axios.get(`http://localhost:8000/expenses/details/${requestId}`);
+    setExpenseDetails(Array.isArray(res.data) ? res.data : []);
+  } catch (err) {
+    console.error("Error fetching expense details:", err);
+    showToast("Failed to fetch expense details.", true);
+  }
+};
+  
+const toggleExpand = async (id) => {
+  if (expandedId === id) {
+    setExpandedId(null);
+    setExpenseDetails([]);
+  } else {
+    setExpandedId(id);
+    await fetchExpenseDetails(id);
+  }
+};
  
   return (
     <div className="expense-container">
@@ -261,13 +276,6 @@ export default function ExpenseDetails() {
                         {exp.tax_included ? "Yes" : "No"}
                       </p>
 
-
-    {exp.status === "rejected" && exp.reason && (
-      <p className="rejection-reason">
-        <strong>Rejection Reason:</strong> {exp.reason}
-      </p>
-    )}
-
                       {exp.attachments &&
                         exp.attachments.map((att) => (
                           <p key={att.attachment_id}>
@@ -280,6 +288,26 @@ export default function ExpenseDetails() {
                             </a>
                           </p>
                         ))}
+
+                          <table className="expense-details-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenseDetails.map((detail, idx) => (
+                    <tr key={idx}>
+                      <td>{detail.name}</td>
+                      <td>{detail.reason || "-"}</td>
+                      <td>{detail.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
                     </div>
                   )}
                 </li>

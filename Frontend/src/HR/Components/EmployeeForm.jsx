@@ -8,7 +8,7 @@ export default function EmployeeForm() {
   const [employees, setEmployees] = useState([]);
   const [managersList, setManagersList] = useState([]);
   const [HRList, setHRList] = useState([]);
-  const [locations, setLocations] = useState(["Hyderabad", "Bangalore", "Pune"]); // mock locations
+  const [locations, setLocations] = useState([]); // mock locations
 
   const [selectedEmp, setSelectedEmp] = useState(null); // for modal
   const [formData, setFormData] = useState({});
@@ -21,59 +21,57 @@ export default function EmployeeForm() {
     setTimeout(() => setToast({ message: null, isError: false }), 2500);
   };
 
-  
+  const fetchEmployees = async () => {
+    try {
+      const res = await axios.get("http://127.0.0.1:8000/users/employees");
+      setEmployees(res.data);
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+      showToast("Failed to fetch employees.", true);
+    }
+  };
+
+  const fetchManagers = async () => {
+    try {
+      const res = await axios.get("http://127.0.0.1:8000/users/managers"); //"http://127.0.0.1:8000/users/managers"
+      setManagersList(Array.isArray(res.data) ? res.data : res.data.managers || []);
+    } catch (err) {
+      console.error("Error fetching managers:", err);
+      showToast("Failed to fetch managers.", true);
+    }
+  };
+
+  const fetchHRs = async () => {
+    try {
+      const res = await axios.get("http://127.0.0.1:8000/users/hrs");
+      setHRList(Array.isArray(res.data) ? res.data : res.data.HRs || []);
+    } catch (err) {
+      console.error("Error fetching HR:", err);
+      showToast("Failed to fetch HR list.", true);
+    }
+  };
+
+  const fetchLocations = async () => {
+  try {
+    const res = await axios.get("http://127.0.0.1:8000/locations"); // Update endpoint as needed
+    setLocations(Array.isArray(res.data) ? res.data : []);
+  } catch (err) {
+    console.error("Error fetching locations:", err);
+    showToast("Failed to fetch locations.", true);
+  }
+};
+
   useEffect(() => {
-    // Fetch mock JSON from public folder
-    fetch("/mock-data.json")
-      .then((res) => res.json())
-      .then((data) => {
-        setEmployees(data.employees || []);
-        setManagersList(data.managers || []);
-        setHRList(data.hrs || []);
-        setLocations(data.locations || []);
-      })
-      .catch((err) => console.error("Failed to load mock data:", err));
+    fetchEmployees();
+    fetchManagers();
+    fetchHRs();
+    fetchLocations();
   }, []);
-  // const fetchEmployees = async () => {
-  //   try {
-  //     const res = await axios.get("http://127.0.0.1:8000/users/employees");
-  //     setEmployees(res.data);
-  //   } catch (err) {
-  //     console.error("Error fetching employees:", err);
-  //     showToast("Failed to fetch employees.", true);
-  //   }
-  // };
-
-  // const fetchManagers = async () => {
-  //   try {
-  //     const res = await axios.get("http://127.0.0.1:8000/users/managers"); //"http://127.0.0.1:8000/users/managers"
-  //     setManagersList(Array.isArray(res.data) ? res.data : res.data.managers || []);
-  //   } catch (err) {
-  //     console.error("Error fetching managers:", err);
-  //     showToast("Failed to fetch managers.", true);
-  //   }
-  // };
-
-  // const fetchHRs = async () => {
-  //   try {
-  //     const res = await axios.get("http://127.0.0.1:8000/users/hrs");
-  //     setHRList(Array.isArray(res.data) ? res.data : res.data.HRs || []);
-  //   } catch (err) {
-  //     console.error("Error fetching HR:", err);
-  //     showToast("Failed to fetch HR list.", true);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   fetchEmployees();
-  //   fetchManagers();
-  //   fetchHRs();
-  // }, []);
 
   const openEditForm = (emp) => {
     setSelectedEmp(emp);
     setFormData({
-      note: "",
+      doj:"",
       location: "",
       manager1: "",
       manager2: "",
@@ -93,13 +91,17 @@ export default function EmployeeForm() {
       showToast("Manager1 is required", true);
       return;
     }
+ if (!formData.hr1) {
+      showToast("HR1 is required", true);
+      return;
+    }
 
     try {
       await axios.post("http://127.0.0.1:8000/users/assign", {
         fullname:formData.fullname,
         comp_mail:formData.company_mail,
         emp_id: selectedEmp.employeeId,
-        note: formData.note,
+        doj:selectedEmp.doj,
         location: formData.location,
         manager1_id: formData.manager1 || null,
         manager2_id: formData.manager2 || null,
@@ -207,6 +209,16 @@ export default function EmployeeForm() {
               </div>
               <p><b>Employee ID:</b> Auto-generated after submission</p>
 
+               <div className="col-md-10 mb-2">
+                <label>DOJ</label>
+                <input className="form-control"
+                  type="date"
+                  name="doj"
+                  value={formData.doj || ""}
+                  onChange={handleFormChange}
+                  required
+                />
+              </div>
               <div className="mb-2">
                 <label>Location</label>
                 <select

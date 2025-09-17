@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import "../Styles/ManagerExpenseApproval.css";
+import "../../Manager/Styles/ManagerExpenseApproval.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 
@@ -11,25 +11,27 @@ export default function ManagerExpenseApproval() {
   const [toast, setToast] = useState({ message: "", isError: false });
 
   
-  const [rejectModal, setRejectModal] = useState({
+  const [reasonModal, setReasonModal] = useState({
     isOpen: false,
     expenseId: null,
     reason: "",
+    status:"",
   });
 
-  useEffect(() => {
-    fetchExpenses();
-  }, []);
 
+ 
   const fetchExpenses = async () => {
     try {
-      const res = await axios.get("mock-data.json");
+      const res = await axios.get("http://localhost:5000/...");
       setExpenses(res.data);
     } catch (err) {
       console.error("Error fetching expenses:", err);
       showToast("Failed to load expenses", true);
     }
   };
+ useEffect(() => {
+    fetchExpenses();
+  }, []);
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
@@ -44,8 +46,8 @@ export default function ManagerExpenseApproval() {
     if (!status) return;
 
 
-    if (status === "Rejected") {
-      setRejectModal({ isOpen: true, expenseId: id, reason: "" });
+    if (status==="Rejected" || status==="Approved"){
+      setReasonModal({ isOpen: true, expenseId: id, reason: "" });
       return;
     }
 
@@ -70,27 +72,27 @@ export default function ManagerExpenseApproval() {
     }
   };
 
-  const handleRejectSubmit = async () => {
-    if (!rejectModal.reason.trim()) {
-      showToast("Please provide a rejection reason", true);
+  const handleSubmit = async () => {
+    if (!reasonModal.reason.trim()) {
+      showToast("Please provide a reason", true);
       return;
     }
 
     try {
       await axios.put(
-        `http://localhost:8000/expenses/mgr-upd-status/${rejectModal.expenseId}`,
+        `http://localhost:8000/expenses/mgr-upd-status/${reasonModal.expenseId}`,
         null,
-        { params: { status: "Rejected", reason: rejectModal.reason } }
+        { params: { status: reasonModal, reason: reasonModal.reason } }
       );
     
       fetchExpenses();
-      showToast(`Status updated to "Rejected"`, false);
+      showToast(`Status updated to "${reasonModal.status}"`, false);
     
-       setRejectModal({ isOpen: false, expenseId: null, reason: "" });
+       setReasonModal({ isOpen: false, expenseId: null, reason: "",status:"" });
 
       setEditingStatus((prev) => {
         const updated = { ...prev };
-        delete updated[rejectModal.expenseId];
+        delete updated[reasonModal.expenseId];
         return updated;
       });
 
@@ -130,6 +132,7 @@ export default function ManagerExpenseApproval() {
             <th>Details</th>
             <th>Status</th>
             <th>Action</th>
+            <th>Reason</th>
           </tr>
         </thead>
         <tbody>
@@ -181,6 +184,7 @@ export default function ManagerExpenseApproval() {
                       Save
                     </button>
                   </td>
+                 <td>{exp.reason || "-"}</td>
                 </tr>
 
                 {expandedId === exp.id && (
@@ -219,14 +223,14 @@ export default function ManagerExpenseApproval() {
       </table>
 
       
-      {rejectModal.isOpen && (
+      {reasonModal.isOpen && (
         <div className="modal-overlay">
           <div className="modal-card">
             <h5>Reason for Rejection</h5>
             <textarea
-              value={rejectModal.reason}
+              value={reasonModal.reason}
               onChange={(e) =>
-                setRejectModal((prev) => ({
+                setReasonModal((prev) => ({
                   ...prev,
                   reason: e.target.value,
                 }))
@@ -237,12 +241,12 @@ export default function ManagerExpenseApproval() {
               <button
                 className="btn-cancel"
                 onClick={() =>
-                  setRejectModal({ isOpen: false, expenseId: null, reason: "" })
+                  setReasonModal({ isOpen: false, expenseId: null, reason: "", status:"" })
                 }
               >
                 Cancel
               </button>
-              <button className="btn-confirm" onClick={handleRejectSubmit}>
+              <button className="btn-confirm" onClick={handleSubmit}>
                 Submit
               </button>
             </div>

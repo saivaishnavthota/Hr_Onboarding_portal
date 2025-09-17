@@ -11,11 +11,14 @@ export default function HRExpenseApproval() {
   const [toast, setToast] = useState({ message: "", isError: false });
 
   
-  const [rejectModal, setRejectModal] = useState({
+  const [reasonModal, setReasonModal] = useState({
     isOpen: false,
     expenseId: null,
     reason: "",
+    status:"",
   });
+ 
+
 
   useEffect(() => {
     fetchExpenses();
@@ -44,8 +47,8 @@ export default function HRExpenseApproval() {
     if (!status) return;
 
 
-    if (status === "Rejected") {
-      setRejectModal({ isOpen: true, expenseId: id, reason: "" });
+    if (status==="Rejected" || status==="Approved"){
+      setReasonModal({ isOpen: true, expenseId: id, reason: "" });
       return;
     }
 
@@ -70,27 +73,27 @@ export default function HRExpenseApproval() {
     }
   };
 
-  const handleRejectSubmit = async () => {
-    if (!rejectModal.reason.trim()) {
-      showToast("Please provide a rejection reason", true);
+  const handleSubmit = async () => {
+    if (!reasonModal.reason.trim()) {
+      showToast("Please provide a reason", true);
       return;
     }
 
     try {
       await axios.put(
-        `http://localhost:8000/expenses/mgr-upd-status/${rejectModal.expenseId}`,
+        `http://localhost:8000/expenses/mgr-upd-status/${reasonModal.expenseId}`,
         null,
-        { params: { status: "Rejected", reason: rejectModal.reason } }
+        { params: { status: reasonModal, reason: reasonModal.reason } }
       );
     
       fetchExpenses();
-      showToast(`Status updated to "Rejected"`, false);
+      showToast(`Status updated to "${reasonModal.status}"`, false);
     
-       setRejectModal({ isOpen: false, expenseId: null, reason: "" });
+       setReasonModal({ isOpen: false, expenseId: null, reason: "",status:"" });
 
       setEditingStatus((prev) => {
         const updated = { ...prev };
-        delete updated[rejectModal.expenseId];
+        delete updated[reasonModal.expenseId];
         return updated;
       });
 
@@ -130,6 +133,7 @@ export default function HRExpenseApproval() {
             <th>Details</th>
             <th>Status</th>
             <th>Action</th>
+             <th>Reason</th>
           </tr>
         </thead>
         <tbody>
@@ -181,6 +185,7 @@ export default function HRExpenseApproval() {
                       Save
                     </button>
                   </td>
+                  <td>{exp.reason || "-"}</td>
                 </tr>
 
                 {expandedId === exp.id && (
@@ -219,14 +224,14 @@ export default function HRExpenseApproval() {
       </table>
 
       
-      {rejectModal.isOpen && (
+      {reasonModal.isOpen && (
         <div className="modal-overlay">
           <div className="modal-card">
             <h5>Reason for Rejection</h5>
             <textarea
-              value={rejectModal.reason}
+              value={reasonModal.reason}
               onChange={(e) =>
-                setRejectModal((prev) => ({
+                setReasonModal((prev) => ({
                   ...prev,
                   reason: e.target.value,
                 }))
@@ -237,12 +242,12 @@ export default function HRExpenseApproval() {
               <button
                 className="btn-cancel"
                 onClick={() =>
-                  setRejectModal({ isOpen: false, expenseId: null, reason: "" })
+                  setReasonModal({ isOpen: false, expenseId: null, reason: "", status:"" })
                 }
               >
                 Cancel
               </button>
-              <button className="btn-confirm" onClick={handleRejectSubmit}>
+              <button className="btn-confirm" onClick={handleSubmit}>
                 Submit
               </button>
             </div>
