@@ -19,13 +19,17 @@ export default function OnboardingDocs() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [toast, setToast] = useState({ message: null, isError: false });
 
+  // 🔹 New states for Reject
+  const [showRejectBox, setShowRejectBox] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+
   useEffect(() => {
     fetchEmployees();
   }, []);
 
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get("http://127.0.0.1:8000/users/employees");
+      const res = await axios.get("mock-employee.json"); //"http://127.0.0.1:8000/users/employees"
       setEmployees(res.data);
     } catch (err) {
       console.error(err);
@@ -33,33 +37,33 @@ export default function OnboardingDocs() {
     }
   };
 
-const handleViewDocuments = async (employee) => {
-  setSelectedEmployee(employee);
-  setShowDocModal(true);
-  setLoadingDocs(true);
-  try {
-    const res = await axios.get(`http://127.0.0.1:8000/documents/emp/${employee.employeeId}`);
+  const handleViewDocuments = async (employee) => {
+    setSelectedEmployee(employee);
+    setShowDocModal(true);
+    setLoadingDocs(true);
+    try {
+      const res = await axios.get("mock-data.json"); //`http://127.0.0.1:8000/documents/emp/${employee.employeeId}`
 
-    // Convert object into array
-    const docsArray = Object.entries(res.data)
-      .filter(([key]) => key !== "employeeId" && key !== "uploaded_at") // skip meta fields
-      .map(([key, value]) => ({
-        name: key,
-        status: value ? "Uploaded" : "Missing",
-        
-        required: value.required, // or check from your schema
-        fileUrl: value ? `http://127.0.0.1:8000/documents/${employee.employeeId}/${key}` : null,
-        fileName: `${key}.pdf`
-      }));
+      // Convert object into array
+      const docsArray = Object.entries(res.data)
+        .filter(([key]) => key !== "employeeId" && key !== "uploaded_at")
+        .map(([key, value]) => ({
+          name: key,
+          status: value ? "Uploaded" : "Missing",
+          required: value.required,
+          fileUrl: value
+            ? `http://127.0.0.1:8000/documents/${employee.employeeId}/${key}`
+            : null,
+          fileName: `${key}.pdf`,
+        }));
 
-    setDocuments(docsArray);
-  } catch (err) {
-    console.error(err);
-    showToast("Failed to fetch documents", true);
-  }
-  setLoadingDocs(false);
-};
-
+      setDocuments(docsArray);
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to fetch documents", true);
+    }
+    setLoadingDocs(false);
+  };
 
   const handleApproveDocuments = async () => {
     const allRequiredUploaded = documents
@@ -72,11 +76,9 @@ const handleViewDocuments = async (employee) => {
     }
 
     try {
-      console.log(selectedEmployee)
-      await axios.post(
-        "http://127.0.0.1:8000/users/approve-documents",
-        { employeeId: selectedEmployee.employeeId}
-      );
+      await axios.post("http://127.0.0.1:8000/users/approve-documents", {
+        employeeId: selectedEmployee.employeeId,
+      });
 
       setDocuments(documents.map((doc) => ({ ...doc, status: "Approved" })));
       setEmployees(
@@ -92,6 +94,34 @@ const handleViewDocuments = async (employee) => {
     }
   };
 
+  // 🔹 Reject handler
+  const handleRejectDocuments = async () => {
+    if (!rejectReason.trim()) {
+      showToast("⚠️ Please provide a reason to reject", true);
+      return;
+    }
+    try {
+      await axios.post("http://127.0.0.1:8000/users/reject-documents", {
+        employeeId: selectedEmployee.employeeId,
+        reason: rejectReason,
+      });
+
+      setDocuments(documents.map((doc) => ({ ...doc, status: "Rejected" })));
+      setEmployees(
+        employees.map((emp) =>
+          emp.id === selectedEmployee.id ? { ...emp, status: "Rejected" } : emp
+        )
+      );
+
+      setShowRejectBox(false);
+      setRejectReason("");
+      showToast("❌ Documents rejected successfully!", false);
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to reject documents", true);
+    }
+  };
+
   const handleEdit = (employee) => {
     setSelectedEmployee(employee);
     setEditForm({
@@ -104,10 +134,7 @@ const handleViewDocuments = async (employee) => {
 
   const handleUpdateEmployee = async () => {
     try {
-      await axios.put(
-        "http://127.0.0.1/users/employees",
-        editForm
-      );
+      await axios.put("http://127.0.0.1/users/employees", editForm);
       setEmployees(
         employees.map((emp) =>
           emp.id === selectedEmployee.id ? { ...emp, ...editForm } : emp
@@ -132,22 +159,15 @@ const handleViewDocuments = async (employee) => {
   };
 
   const filteredEmployees = employees.filter((emp) => {
-  const name = emp.name 
-  const email = emp.email 
-  const matchesSearch =
-    name.includes(searchQuery) ||
-    email.includes(searchQuery);
+    const name = emp.name;
+    const email = emp.email;
+    const matchesSearch = name.includes(searchQuery) || email.includes(searchQuery);
+    const matchesStatus = statusFilter === "All" || emp.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-  const matchesStatus =
-    statusFilter === "All" || emp.status === statusFilter;
-
-  return matchesSearch && matchesStatus;
-});
-
-
- return (
+  return (
     <div className="container py-4">
-      {/* Toast */}
       {toast.message && (
         <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
           <FontAwesomeIcon
@@ -160,6 +180,7 @@ const handleViewDocuments = async (employee) => {
 
       <h3 className="text-center mb-4">Employee Management</h3>
 
+      {/* 🔹 Search + Filter */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <input
           type="text"
@@ -176,8 +197,11 @@ const handleViewDocuments = async (employee) => {
           <option value="All">All Status</option>
           <option value="Pending">Pending</option>
           <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
         </select>
       </div>
+
+      {/* 🔹 Employee Table */}
       <div className="table-responsive">
         <table className="table table-bordered table-striped text-center">
           <thead>
@@ -252,7 +276,8 @@ const handleViewDocuments = async (employee) => {
           </tbody>
         </table>
       </div>
-      {/* Documents Modal */}
+
+      {/* 🔹 Documents Modal */}
       {showDocModal &&
         ReactDOM.createPortal(
           <div className="modal-overlay">
@@ -292,7 +317,9 @@ const handleViewDocuments = async (employee) => {
                       </div>
                     ))}
                   </div>
-                  <div className="approve-all-btn">
+
+                  {/* Approve + Reject */}
+                  <div className="approve-all-btn d-flex gap-2">
                     <button
                       className="btn btn-success"
                       onClick={handleApproveDocuments}
@@ -302,11 +329,40 @@ const handleViewDocuments = async (employee) => {
                     >
                       Approve
                     </button>
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => setShowRejectBox(!showRejectBox)}
+                      disabled={documents.every(
+                        (doc) => doc.status === "Approved"
+                      )}
+                    >
+                      Reject
+                    </button>
                   </div>
+
+                  {/* Reject Reason Box */}
+                  {showRejectBox && (
+                    <div className="reject-box mt-3">
+                      <textarea
+                        className="form-control mb-2"
+                        rows="3"
+                        placeholder="Enter reason for rejection..."
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                      />
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleRejectDocuments}
+                      >
+                        Send Mail
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
-              <div  className="modal-footer">
-                <button className="close-btn"
+              <div className="modal-footer">
+                <button
+                  className="close-btn"
                   onClick={() => setShowDocModal(false)}
                 >
                   Close
@@ -316,7 +372,8 @@ const handleViewDocuments = async (employee) => {
           </div>,
           document.body
         )}
-      {/* Edit Employee Modal */}
+
+      {/* 🔹 Edit Employee Modal */}
       {showEditModal &&
         ReactDOM.createPortal(
           <div className="modal-overlay">
@@ -358,10 +415,7 @@ const handleViewDocuments = async (employee) => {
                 </div>
               </div>
               <div className="modal-footer mt-3 gap-3">
-                <button
-                  className="update-btn"
-                  onClick={handleUpdateEmployee}
-                >
+                <button className="update-btn" onClick={handleUpdateEmployee}>
                   Update
                 </button>
                 <button
@@ -378,4 +432,3 @@ const handleViewDocuments = async (employee) => {
     </div>
   );
 }
- 

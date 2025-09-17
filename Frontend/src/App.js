@@ -23,35 +23,40 @@ import ManagerAttendance from "./Manager/Components/ManagerAttendance";
 import ManagerExpenseApproval from "./Manager/Components/ManagerExpenseApproval";
 import AccountExpenseApproval from "./AccountManager/Components/AccountExpenseApproval";
 import AccountManagerDashboard from "./AccountManager/Components/AccountManagerDashboard";
+import DocumentCollection from "./HR/Components/DocumentCollection";
+import UpdatePassword from "./Employee/Components/UpdatePassword";
+import ForgetPassword from "./Employee/Components/ForgetPassword";
 function App() {
   return (
-  //   <Routes>
-  //      <Route path="/" element={<EmployeeLogin />} />      
-  //   <Route path="/new-user-form" element={  < NewUserDetails/> } />
-  //     <Route path="/new-user-form/docs" element={<NewUserDocsUpload />} />
-  //   <Route
-  //       path="/hr-dashboard/*"
-  //       element={  
-  //           <Dashboard />
-  //       }
-  //     />
-  //     <Route
-  //       path="/manager-dashboard/*"
-  //       element={
-  //           <ManagerDashboard /> 
-  //       }
-  //     /> 
+    <Routes>
+      <Route path="/" element={<EmployeeLogin />} />      
+      <Route path="/change-password" element={<UpdatePassword />} />
+       <Route path="/forgot-password" element={<ForgetPassword/>} /> 
+      <Route path="/new-user-form" element={  < NewUserDetails/> } />
+      <Route path="/new-user-form/docs" element={<NewUserDocsUpload />} />
+    <Route
+        path="/hr-dashboard/*"
+        element={  
+            <Dashboard />
+        }
+      />
+      <Route
+        path="/manager-dashboard/*"
+        element={
+            <ManagerDashboard /> 
+        }
+      /> 
 
-  //     <Route
-  //       path="/employee-dashboard/*"
-  //       element={
+      <Route
+        path="/employee-dashboard/*"
+        element={
           
-  //           <EmployeeDashboard />
+            <EmployeeDashboard />
           
-  //       }
-  //     />
-  // </Routes>
-<AccountManagerDashboard/>
+        }
+      />
+  </Routes>
+
   )
 }
 

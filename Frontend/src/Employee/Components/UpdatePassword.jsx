@@ -1,19 +1,32 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import "../Styles/UpdatePassword.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+
 const UpdatePassword = () => {
   const [formData, setFormData] = useState({
-    email: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
   const [toast, setToast] = useState({ message: null, isError: false });
+  const API_BASE_URL =
+    process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:5000";
+
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // 🔹 Get query params
+  const queryParams = new URLSearchParams(location.search);
+  const resetToken = queryParams.get("token"); // from email reset link
+  const fromForgot = queryParams.get("from") === "forgot"; // from ForgotPassword redirect
+
+  // 🔹 Check new user flag
+  const isNewUser =
+    JSON.parse(localStorage.getItem("user") || "{}")?.is_new_user || false;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,20 +46,46 @@ const UpdatePassword = () => {
     }
 
     try {
-      const response = await axios.post(
-        "https://7af2b81040a6.ngrok-free.app/reset_password",
-        formData
-      );
+      if (resetToken || fromForgot) {
+        // 🔹 Forgot password reset flow
+        await axios.post(`${API_BASE_URL}/users/reset-password`, {
+          token: resetToken,
+          newPassword: formData.newPassword,
+        });
 
-      showToast(response.data.message || "Password changed successfully!", false);
+        showToast("Password reset successfully! Redirecting to login...", false);
+        setTimeout(() => navigate("/"), 1500);
+      } else if (isNewUser) {
+        // 🔹 New user first login → no current password required
+        const token = localStorage.getItem("token");
+        await axios.post(
+          `${API_BASE_URL}/users/change-password`,
+          { newPassword: formData.newPassword },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
-      setTimeout(() => {
-        navigate("/employee-login");
-      }, 1500);
-    } catch (error) {
-      console.error("Error updating password:", error);
+        showToast("Password updated successfully! Redirecting...", false);
+        setTimeout(() => navigate("/new-user-form"), 1500);
+      } else {
+        // 🔹 Normal logged-in user (profile settings)
+        const token = localStorage.getItem("token");
+        await axios.post(
+          `${API_BASE_URL}/users/change-password`,
+          {
+            currentPassword: formData.currentPassword,
+            newPassword: formData.newPassword,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        showToast("Password changed successfully!", false);
+        setTimeout(() => navigate("/"), 1500);
+      }
+    } catch (err) {
+      console.error("Password update error:", err);
       showToast(
-        error.response?.data?.error || "Something went wrong. Please try again later.",
+        err.response?.data?.error ||
+          "Something went wrong. Please try again later.",
         true
       );
     }
@@ -55,7 +94,10 @@ const UpdatePassword = () => {
   // Auto-hide toast after 2.5s
   useEffect(() => {
     if (toast.message) {
-      const timer = setTimeout(() => setToast({ message: null, isError: false }), 2500);
+      const timer = setTimeout(
+        () => setToast({ message: null, isError: false }),
+        2500
+      );
       return () => clearTimeout(timer);
     }
   }, [toast]);
@@ -64,42 +106,33 @@ const UpdatePassword = () => {
     <div className="container d-flex justify-content-center align-items-center min-vh-100">
       {toast.message && (
         <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
-           <FontAwesomeIcon
-                icon={toast.isError ? faTimesCircle : faCheckCircle}
-                className="me-2"
-              />
+          <FontAwesomeIcon
+            icon={toast.isError ? faTimesCircle : faCheckCircle}
+            className="me-2"
+          />
           {toast.message}
         </div>
       )}
       <div className="form-box shadow-lg p-4 rounded">
         <h2 className="text-center mb-4">Change Password</h2>
         <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label className="form-label">Email Id</label>
-            <input
-              type="email"
-              name="email"
-              className="form-control"
-              placeholder="Enter your email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          {/* Show current password only for normal users */}
+          {!resetToken && !isNewUser && !fromForgot && (
+            <div className="mb-3">
+              <label className="form-label">Current Password</label>
+              <input
+                type="password"
+                name="currentPassword"
+                className="form-control"
+                placeholder="Enter current password"
+                value={formData.currentPassword}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          )}
 
-          <div className="mb-3">
-            <label className="form-label">Current Password</label>
-            <input
-              type="password"
-              name="currentPassword"
-              className="form-control"
-              placeholder="Enter current password"
-              value={formData.currentPassword}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
+          {/* Always show new + confirm */}
           <div className="mb-3">
             <label className="form-label">New Password</label>
             <input
