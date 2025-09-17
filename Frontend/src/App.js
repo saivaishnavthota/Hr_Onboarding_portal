@@ -26,6 +26,7 @@ import AccountManagerDashboard from "./AccountManager/Components/AccountManagerD
 import DocumentCollection from "./HR/Components/DocumentCollection";
 import UpdatePassword from "./Employee/Components/UpdatePassword";
 import ForgetPassword from "./Employee/Components/ForgetPassword";
+import AssignLeaveHolidays from "./HR/Components/AssignLeaveHolidays";
 function App() {
   return (
   //   <Routes>
@@ -57,7 +58,7 @@ function App() {
   //     />
   // </Routes>
 
-  <EmployeeForm/>
+  <AssignLeaveHolidays/>
 
   )
 }

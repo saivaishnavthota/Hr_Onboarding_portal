@@ -1,16 +1,13 @@
-[
-  {
-    "id": 1,
-    "name": "Alice Johnson",
-    "email": "alice.johnson@example.com",
-    "type": "Full-Time",
-    "status": "Pending"
-  },
-  {
-    "id": 2,
-    "name": "Bob Smith",
-    "email": "bob.smith@example.com",
-    "type": "Intern",
-    "status": "Approved"
-  }
-]
+{
+  "loc1": [
+    { "date": "2025-01-01", "reason": "New Year" },
+    { "date": "2025-07-04", "reason": "Independence Day" }
+  ],
+  "loc2": [
+    { "date": "2025-12-25", "reason": "Christmas" },
+    { "date": "2025-12-26", "reason": "Boxing Day" }
+  ],
+  "loc3": [
+    { "date": "2025-01-26", "reason": "Australia Day" }
+  ]
+}

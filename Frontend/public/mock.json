@@ -1,0 +1,35 @@
+[
+  {
+    "id": "E101",
+    "name": "Alice Johnson",
+    "email": "alice@example.com",
+    "type": "Full-Time",
+    "sickLeave": 5,
+    "casualLeave": 2,
+    "annualLeave": 10,
+    "maternity": 0,
+    "paternity": 0
+  },
+  {
+    "id": "E102",
+    "name": "Bob Smith",
+    "email": "bob@example.com",
+    "type": "Part-Time",
+    "sickLeave": 3,
+    "casualLeave": 1,
+    "annualLeave": 5,
+    "maternity": 0,
+    "paternity": 0
+  },
+  {
+    "id": "E103",
+    "name": "Charlie Brown",
+    "email": "charlie@example.com",
+    "type": "Full-Time",
+    "sickLeave": 4,
+    "casualLeave": 2,
+    "annualLeave": 8,
+    "maternity": 0,
+    "paternity": 2
+  }
+]
