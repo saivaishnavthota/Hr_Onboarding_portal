@@ -194,3 +194,8 @@
 .profile{
   right:0px;
 }
+.menu-item.active .menu-link {
+  background-color: #e0f0ff; /* Highlight background */
+  color: #007bff; /* Highlight text */
+  font-weight: bold;
+}

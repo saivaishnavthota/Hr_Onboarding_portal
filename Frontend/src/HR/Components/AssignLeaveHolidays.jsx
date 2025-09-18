@@ -21,7 +21,7 @@ export default function AssignLeaveHolidays() {
   // Fetch locations
   useEffect(() => {
     axios
-      .get("/locations")
+      .get("http://127.0.0.1:8000/locations/")
       .then((res) => setLocations(res.data))
       .catch((err) => console.error(err));
   }, []);
@@ -29,7 +29,7 @@ export default function AssignLeaveHolidays() {
   // Fetch employees
   useEffect(() => {
     axios
-      .get("/employees")
+      .get("http://127.0.0.1:8000/users")
       .then((res) => setEmployees(res.data))
       .catch((err) => console.error(err));
   }, []);
@@ -38,52 +38,71 @@ export default function AssignLeaveHolidays() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleAddHoliday = () => {
-    if (!selectedLocation) {
-      toast.error("Please select a location!");
-      return;
-    }
-    if (!formData.date || !formData.reason) {
-      toast.warn("Both date and reason are required!");
-      return;
-    }
-    const newHoliday = { date: formData.date, reason: formData.reason };
-    setHolidays((prev) => [...prev, newHoliday]);
-    setFormData({ date: "", reason: "" });
+
+const handleAddHoliday = async () => {
+  if (!selectedLocation) {
+    toast.error("Please select a location!");
+    return;
+  }
+  if (!formData.date || !formData.reason) {
+    toast.warn("Both date and reason are required!");
+    return;
+  }
+  try {
+    await axios.post("http://127.0.0.1:8000/calendar/add", {
+      location_id: Number(selectedLocation),
+      date: formData.date,
+      reason: formData.reason,
+    });
     toast.success("Holiday added successfully!");
-  };
+    setFormData({ date: "", reason: "" });
+    handleViewHolidays(); // refresh holidays
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to add holiday.");
+  }
+};
 
-  const handleViewHolidays = () => {
-    if (!selectedLocation) {
-      toast.error("Select a location first!");
-      return;
-    }
-    axios
-      .get("/holidays")
-      .then((res) => {
-        setHolidays(res.data[selectedLocation] || []);
-        setShowHolidaysTable(true);
-        setShowCalendar(false);
-        toast.info("Showing holidays table!");
-      })
-      .catch((err) => console.error(err));
-  };
 
-  const handleViewCalendar = () => {
-    if (!selectedLocation) {
-      toast.error("Select a location first!");
-      return;
-    }
-    axios
-      .get("")
-      .then((res) => {
-        setHolidays(res.data[selectedLocation] || []);
-        setShowCalendar(true);
-        setShowHolidaysTable(false);
-        toast.info("Showing holiday calendar!");
-      })
-      .catch((err) => console.error(err));
-  };
+const handleViewHolidays = async () => {
+  if (!selectedLocation) {
+    toast.error("Select a location first!");
+    return;
+  }
+  try {
+    const res = await axios.get(
+      `http://127.0.0.1:8000/calendar/by-location/${selectedLocation}`
+    );
+    setHolidays(res.data || []);
+    setShowHolidaysTable(true);
+    setShowCalendar(false);
+    toast.info("Showing holidays table!");
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to fetch holidays.");
+  }
+};
+
+
+ const handleViewCalendar = async () => {
+  if (!selectedLocation) {
+    toast.error("Select a location first!");
+    return;
+  }
+  try {
+    const res = await axios.get(
+      `http://127.0.0.1:8000/calendar/by-location/${selectedLocation}`
+    );
+    setHolidays(res.data || []);
+    setShowCalendar(true);
+    setShowHolidaysTable(false);
+    toast.info("Showing holiday calendar!");
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to fetch calendar holidays.");
+  }
+};
+
 
   // 🔄 Refresh Section 1
   const handleRefresh = () => {

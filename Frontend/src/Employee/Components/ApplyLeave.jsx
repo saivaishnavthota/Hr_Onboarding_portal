@@ -13,11 +13,15 @@ export default function ApplyLeave() {
   });
   const [pastLeaves, setPastLeaves] = useState([]);
   const [summary, setSummary] = useState({});
+  
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const employee_id = user.id;
    // Replace with logged-in employee id
 
   // Fetch summary + past leaves
+  const [publicHolidays, setPublicHolidays] = useState([]);
+  const [locationId, setLocationId] = useState(user.location_id || null); 
+
   useEffect(() => {
     fetchSummary();
     fetchPastLeaves();
@@ -53,25 +57,41 @@ const fetchSummary = async () => {
     }
   };
 
+useEffect(() => {
+  if (locationId) fetchPublicHolidays(locationId);
+}, [locationId]);
+
+const fetchPublicHolidays = async (locId) => {
+  try {
+    const res = await axios.get(`http://127.0.0.1:8000/public_holidays/${locId}`);
+    // assume backend returns array of dates ["2025-09-20", "2025-09-25", ...]
+    setPublicHolidays(res.data || []);
+  } catch (err) {
+    console.error("Failed to fetch public holidays:", err);
+  }
+};
+
   // ✅ Calculate working days excluding Saturday & Sunday
-  const calculateWorkingDays = (start_date, end_date, halfDay = false) => {
-    let current = new Date(start_date);
-    const endDate = new Date(end_date);
-    let days = 0;
+ const calculateWorkingDays = (start_date, end_date, halfDay = false) => {
+  let current = new Date(start_date);
+  const endDate = new Date(end_date);
+  let days = 0;
 
-    while (current <= endDate) {
-      const day = current.getDay(); // 0 = Sunday, 6 = Saturday
-      if (day !== 0 && day !== 6) {
-        days++;
-      }
-      current.setDate(current.getDate() + 1);
-    }
+  while (current <= endDate) {
+    const day = current.getDay(); // 0 = Sunday, 6 = Saturday
+    const formatted = current.toISOString().split("T")[0]; // YYYY-MM-DD
 
-    if (halfDay && days > 0) {
-      return days - 0.5; // subtract half day
+    if (day !== 0 && day !== 6 && !publicHolidays.includes(formatted)) {
+      days++;
     }
-    return days;
-  };
+    current.setDate(current.getDate() + 1);
+  }
+
+  if (halfDay && days > 0) {
+    return days - 0.5;
+  }
+  return days;
+};
 
   // Input change
   const handleChange = (e) => {
@@ -155,9 +175,10 @@ const fetchSummary = async () => {
     }
   };
 
-  const totalDays = formData.startDate && formData.endDate
-    ? calculateWorkingDays(formData.startDate, formData.endDate, formData.halfDay)
-    : 0;
+const totalDays = formData.startDate && formData.endDate
+  ? calculateWorkingDays(formData.startDate, formData.endDate, formData.halfDay)
+  : 0;
+
 
   const remainingLeaves = getRemainingLeaves(formData.leaveType);
   const isDisabled = totalDays > remainingLeaves && formData.leaveType !== "";
@@ -174,9 +195,9 @@ const fetchSummary = async () => {
           {toast.message}
         </div>
       )} */}
-
+ 
       <div className="heading"><h2>Apply a Leave</h2></div>
-
+ 
       {/* Top summary cards */}
       <div className="summary-row">
         <div className="summary-card">
@@ -188,6 +209,7 @@ const fetchSummary = async () => {
           <p>{(summary.sick_allocated + summary.casual_allocated + summary.annual_allocated) || 0}</p>
         </div>
       </div>
+ 
       <div className="summary-row">
         <div className="summary-card sick-card">
           <h4>Sick Leave</h4>
@@ -200,6 +222,7 @@ const fetchSummary = async () => {
           <p>Applied: {summary.casualApplied}</p>
         </div>
       </div>
+ 
       <div className="summary-row center">
         <div className="summary-card annual-card">
           <h4>Annual Leave</h4>
@@ -207,6 +230,7 @@ const fetchSummary = async () => {
           <p>Applied: {summary.annualApplied}</p>
         </div>
       </div>
+ 
       {/* Form with tabs */}
       <div className="form-container">
         {/* Tabs */}
@@ -224,6 +248,7 @@ const fetchSummary = async () => {
             Past Leaves
           </div>
         </div>
+ 
         {/* Apply Leave Form */}
         {activeTab === "apply" && (
           <form className="leave-form" onSubmit={handleSubmit}>
@@ -231,16 +256,20 @@ const fetchSummary = async () => {
               Leave Type:
               <select
                 name="leaveType"
-                value={formData.leaveType}
+                value={formData.leave_type}
                 onChange={handleChange}
                 required
               >
-                <option value="">Select</option>
+                <option value="">Select Leave Type</option>
                 <option value="Sick">Sick Leave</option>
                 <option value="Casual">Casual Leave</option>
-                <option value="Annual">Annual Leave</option>
+                <option value="Annual">Annual/Earned Leave</option>
+                <option value="Annual">Maternity Leave</option>
+                <option value="Annual">Paternity Leave</option>
+               
               </select>
             </label>
+ 
             <div className="halfday-row">
               <label className="halfday-label">
                 <input
@@ -252,34 +281,36 @@ const fetchSummary = async () => {
                 Half Day
               </label>
             </div>
+ 
             <div className="date-row">
               <label>
                 Start Date:
                 <input
                   type="date"
                   name="startDate"
-                  value={formData.startDate}
+                  value={formData.start_date}
                   onChange={handleChange}
                   required
                 />
               </label>
+ 
               <label>
                 End Date:
                 <input
                   type="date"
                   name="endDate"
-                  value={formData.endDate}
+                  value={formData.end_date}
                   onChange={handleChange}
                   required
                 />
               </label>
             </div>
-
+ 
             <label>
               Total Days:
-              <input type="text" value={totalDays} readOnly />
+              <input type="text" value={formData.no_of_days} readOnly />
             </label>
-
+ 
             <label>
               Reason:
               <textarea
@@ -296,6 +327,7 @@ const fetchSummary = async () => {
             </button>
           </form>
         )}
+ 
         {/* Past Leaves */}
         {activeTab === "past" && (
           <div className="past-leaves">
@@ -318,10 +350,10 @@ const fetchSummary = async () => {
                 <tbody>
                   {pastLeaves.map((leave) => (
                     <tr key={leave.id}>
-                      <td>{leave.leaveType}</td>
-                      <td>{leave.startDate}</td>
-                      <td>{leave.endDate}</td>
-                      <td>{leave.totalDays}</td>
+                      <td>{leave.leave_type}</td>
+                      <td>{leave.start_date}</td>
+                      <td>{leave.end_date}</td>
+                      <td>{leave.no_of_days}</td>
                       <td>{leave.halfDay ? "Yes" : "No"}</td>
                       <td>{leave.reason}</td>
                       <td>
@@ -340,3 +372,4 @@ const fetchSummary = async () => {
     </div>
   );
 }
+ 

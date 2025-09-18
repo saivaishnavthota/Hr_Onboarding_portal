@@ -31,7 +31,7 @@ useEffect(() => {
 }, []);
   const [toast, setToast] = useState({ message: null, isError: false });
 
-  // ✅ Load saved form data if exists
+
   
 
   const handleChange = (e) => {
@@ -39,11 +39,29 @@ useEffect(() => {
     setEmployee((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Show toast for 3 seconds
   const showToast = (message, isError = false) => {
     setToast({ message, isError });
     setTimeout(() => setToast({ message: null, isError: false }), 3000);
   };
+
+  const [phoneError, setPhoneError] = useState(""); // Error message state
+
+// Add handleChange validation for phone
+const handlePhoneChange = (e) => {
+  const { name, value } = e.target;
+
+  // Validate Indian phone numbers as example
+  if (name === "contact_no") {
+    const regex = /^[6-9]\d{9}$/; // Indian mobile numbers (10 digits, starting 6-9)
+    if (!regex.test(value)) {
+      setPhoneError("Invalid phone number. Must be 10 digits starting with 6-9");
+    } else {
+      setPhoneError("");
+    }
+  }
+
+  setEmployee((prev) => ({ ...prev, [name]: value }));
+};
 
   const handleSaveDraft = async () => {
     try {
@@ -81,7 +99,7 @@ useEffect(() => {
       )}
 
       <div className="employee-details">
-        <div className="form-section">
+        <div className="details-form-section">
           <h2>Onboarding Employee Details</h2>
           <h4>Please fill the details below</h4>
           <div className="form-grid">
@@ -118,15 +136,21 @@ useEffect(() => {
               />
             </div>
             <div>
-              <label>Phone Number</label>
-              <input
-                type="number"
-                name="contact_no"
-                value={employee.contact_no}
-                onChange={handleChange}
-                required
-              />
-            </div>
+  <label>Contact Number</label>
+  <div style={{ display: "flex", alignItems: "center" }}>
+    <span style={{ marginRight: "5px" }}>+91</span> {/* Country code */}
+    <input
+      type="number"
+      name="contact_no"
+      value={employee.contact_no}
+      onChange={handlePhoneChange}
+      required
+      style={{ flex: 1 }}
+    />
+  </div>
+  {phoneError && <small style={{ color: "red" }}>{phoneError}</small>}
+</div>
+
             <div>
               <label>Gender</label>
               <select
@@ -149,7 +173,7 @@ useEffect(() => {
                 type="number"
                 name="graduation_year"
                 value={employee.graduation_year}
-                onChange={handleChange}
+                onChange={handlePhoneChange}
                 required
               />
             </div>
@@ -174,12 +198,12 @@ useEffect(() => {
                 />
               </div>
               <div>
-                <label>Contact Number</label>
+                <label>Emergency Contact Number</label>
                 <input
                   type="number"
                   name="emergency_contact_number"
                   value={employee.emergency_contact_number}
-                  onChange={handleChange}
+                  onChange={handlePhoneChange}
                   required
                 />
               </div>

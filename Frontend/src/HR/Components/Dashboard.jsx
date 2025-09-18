@@ -7,7 +7,7 @@ import EmployeeForm from "./EmployeeForm";
 import OnboardingDocs from "./OnboardingDocs";
 import LeaveManagement from "./LeaveManagement";
 import UpdatePassword from "../../Employee/Components/UpdatePassword";
-import { Link, Routes, Route, useNavigate } from "react-router-dom";
+import { useLocation,Link, Routes, Route, useNavigate } from "react-router-dom";
 import {
   faArrowLeft,
   faArrowRight,
@@ -29,7 +29,7 @@ import HRExpenseApproval from "./HRExpenseApproval";
 export default function Dashboard() {
   const [isOpen, setIsOpen] = useState(true);
   const navigate = useNavigate();
-
+  const location = useLocation();
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) setIsOpen(false);
@@ -60,9 +60,9 @@ export default function Dashboard() {
   { name: "Documents Collection", icon: faFileAlt , path: "collect-docs" },
   { name: "Leave Management", icon: faPaperPlane, path: "leave-manage" },
   { name: "Expense Management", icon: faCoins, path: "expense-approval" },
-  { name: "Change Password", icon: faKey, path: "change-password" },
+  { name: "Change Password", icon: faKey, path: "change-password" },  
 ];
-
+  const [activeItem, setActiveItem] = useState("employee-attendance");
 
   return (
     <div className="dashboard">
@@ -93,23 +93,26 @@ export default function Dashboard() {
           <FontAwesomeIcon icon={isOpen ? faArrowLeft : faArrowRight} />
         </button>
 
-        <aside className={`sidebar ${isOpen ? "open" : "collapsed"}`}>
-          <nav>
-            {menuItems.map((item, idx) => (
-              <div key={idx} className="menu-item">
-                <Link
-                  to={`/hr-dashboard/${item.path}`}
-                  className="menu-link"
-                  onClick={() => window.scrollTo(0, 0)}
-                >
-                  <FontAwesomeIcon icon={item.icon} className="menu-icon" />
-                  {isOpen && <span className="menu-text">{item.name}</span>}
-                </Link>
-                {!isOpen && <span className="tooltip">{item.name}</span>}
-              </div>
-            ))}
-          </nav>
-        </aside>
+       <aside className={`sidebar ${isOpen ? "open" : "collapsed"}`}>
+      <nav>
+        {menuItems.map((item, idx) => {
+          const isActive = location.pathname.endsWith(item.path); // Check current route
+          return (
+            <div key={idx} className={`menu-item ${isActive ? "active" : ""}`}>
+              <Link
+                to={`/hr-dashboard/${item.path}`}
+                className="menu-link"
+              >
+                <FontAwesomeIcon icon={item.icon} className="menu-icon" />
+                {isOpen && <span className="menu-text">{item.name}</span>}
+              </Link>
+              {!isOpen && <span className="tooltip">{item.name}</span>}
+            </div>
+          );
+        })}
+      </nav>
+    </aside>
+
 
         {/* Content Area */}
         <main className="content">

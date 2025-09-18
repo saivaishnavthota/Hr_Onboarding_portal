@@ -2,25 +2,25 @@ import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faTimes, faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
-
-
+ 
+ 
 export default function EmployeeForm() {
   const [employees, setEmployees] = useState([]);
   const [managersList, setManagersList] = useState([]);
   const [HRList, setHRList] = useState([]);
-  const [locations, setLocations] = useState([]); // mock locations
-
+  const [locations, setLocations] = useState([]); 
+ 
   const [selectedEmp, setSelectedEmp] = useState(null); // for modal
   const [formData, setFormData] = useState({});
   const [toast, setToast] = useState({ message: null, isError: false });
-
+ 
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
-
+ 
   const showToast = (message, isError = false) => {
     setToast({ message, isError });
     setTimeout(() => setToast({ message: null, isError: false }), 2500);
   };
-
+ 
   const fetchEmployees = async () => {
     try {
       const res = await axios.get("http://127.0.0.1:8000/users/employees");
@@ -30,7 +30,7 @@ export default function EmployeeForm() {
       showToast("Failed to fetch employees.", true);
     }
   };
-
+ 
   const fetchManagers = async () => {
     try {
       const res = await axios.get("http://127.0.0.1:8000/users/managers"); //"http://127.0.0.1:8000/users/managers"
@@ -40,7 +40,7 @@ export default function EmployeeForm() {
       showToast("Failed to fetch managers.", true);
     }
   };
-
+ 
   const fetchHRs = async () => {
     try {
       const res = await axios.get("http://127.0.0.1:8000/users/hrs");
@@ -50,24 +50,26 @@ export default function EmployeeForm() {
       showToast("Failed to fetch HR list.", true);
     }
   };
-
+ 
   const fetchLocations = async () => {
   try {
-    const res = await axios.get("http://127.0.0.1:8000/locations"); // Update endpoint as needed
-    setLocations(Array.isArray(res.data) ? res.data : []);
+    
+    const res = await axios.get("http://127.0.0.1:8000/locations");
+   
+    setLocations(Array.isArray(res.data.data) ? res.data.data : []);
   } catch (err) {
     console.error("Error fetching locations:", err);
     showToast("Failed to fetch locations.", true);
   }
 };
-
+ 
   useEffect(() => {
     fetchEmployees();
     fetchManagers();
     fetchHRs();
     fetchLocations();
   }, []);
-
+ 
   const openEditForm = (emp) => {
     setSelectedEmp(emp);
     setFormData({
@@ -80,11 +82,16 @@ export default function EmployeeForm() {
       hr2: "",
     });
   };
-
+ 
   const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const { name, value } = e.target;
+  setFormData((prev) => ({
+    ...prev,
+    [name]: ["location", "manager1", "manager2", "manager3", "hr1", "hr2"].includes(name)
+      ? value ? Number(value) : null // convert to number or null
+      : value
+  }));
+};
 
   const submitForm = async () => {
     if (!formData.manager1) {
@@ -95,30 +102,30 @@ export default function EmployeeForm() {
       showToast("HR1 is required", true);
       return;
     }
-
+ 
     try {
-      await axios.post("http://127.0.0.1:8000/users/assign", {
-        fullname:formData.fullname,
-        comp_mail:formData.company_mail,
-        emp_id: selectedEmp.employeeId,
-        doj:selectedEmp.doj,
-        location: formData.location,
+      await axios.post("http://127.0.0.1:8000/onboarding/hr/assign", {
+        fullname:selectedEmp.fullname,
+        company_email:formData.company_mail,
+        to_email:selectedEmp.email,
+        employee_id: selectedEmp.employeeId,
+        doj:formData.doj,
+        location_id: formData.location,
         manager1_id: formData.manager1 || null,
         manager2_id: formData.manager2 || null,
         manager3_id: formData.manager3 || null,
         hr1_id: formData.hr1 || null,
         hr2_id: formData.hr2 || null,
       });
-
+ 
       showToast("Assignments updated successfully!");
-      // fetchEmployees();
       setSelectedEmp(null);
     } catch (err) {
       console.error("Error submitting:", err);
       showToast("Failed to update assignments.", true);
     }
   };
-
+ 
   return (
     <div className="employee-form bg-light">
       {toast.message && (
@@ -130,7 +137,7 @@ export default function EmployeeForm() {
           {toast.message}
         </div>
       )}
-
+ 
       <h3 className="text-center my-4">Employee Management</h3>
       <h6 className="text-left m-5">Assign HR/Managers</h6>
       <div className="table-responsive m-5">
@@ -172,7 +179,7 @@ export default function EmployeeForm() {
           </tbody>
         </table>
       </div>
-
+ 
       {/* Modal Popup */}
       {selectedEmp && (
         <div className="modal show d-block" tabIndex="-1" role="dialog">
@@ -192,9 +199,9 @@ export default function EmployeeForm() {
                 <input  className="form-control"
                   type="text"
                   name="fullname"
-                  value={formData.fullname || ""}
-                  onChange={handleFormChange}
-                  required
+                  value={selectedEmp.fullname || ""}
+                  
+                  readOnly
                 />
               </div>
               <div className="col-md-10 mb-2">
@@ -208,7 +215,7 @@ export default function EmployeeForm() {
                 />
               </div>
               <p><b>Employee ID:</b> Auto-generated after submission</p>
-
+ 
                <div className="col-md-10 mb-2">
                 <label>DOJ</label>
                 <input className="form-control"
@@ -222,18 +229,20 @@ export default function EmployeeForm() {
               <div className="mb-2">
                 <label>Location</label>
                 <select
-                  className="form-control"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleFormChange}
-                >
-                  <option value="">Select Location</option>
-                  {locations.map((loc, i) => (
-                    <option key={i} value={loc}>{loc}</option>
-                  ))}
-                </select>
+  className="form-control"
+  name="location"
+  value={formData.location || ""}
+  onChange={handleFormChange}
+>
+  <option value="">Select Location</option>
+  {locations.map((loc) => (
+    <option key={loc.id} value={loc.id}>
+      {loc.name}
+    </option>
+  ))}
+</select>
               </div>
-
+ 
                   <div className="row">
                   <div className="col-md-6 mb-2">
                     <label>Manager 1 (Required)</label>
@@ -324,3 +333,5 @@ export default function EmployeeForm() {
     </div>
   );
 }
+ 
+ 
