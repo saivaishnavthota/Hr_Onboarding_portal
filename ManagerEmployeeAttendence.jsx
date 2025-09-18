@@ -27,21 +27,24 @@ export default function ManagerEmployeeAttendence() {
         setLoading(true);
 
         //changed
-        const res = await axios.get(`http://127.0.0.1:8000/attendance/summary-all`, {
-          params: { month: parseInt(month), year: parseInt(year) }
+        const token = localStorage.getItem("token"); // JWT token from login
+
+        const res = await axios.get(`http://127.0.0.1:8000/attendance/mgr-assigned`, {
+          params: { month: parseInt(month), year: parseInt(year) },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         const formatted = res.data.map(emp => ({
           id: emp.employee_id,       
           name: emp.name,
           email: emp.email,
-          department: emp.department,
+          department: emp.department  || "N/A",
           present: emp.present || 0, 
           wfh: emp.wfh || 0,
           leave: emp.leave || 0
         }));
 
-        setEmployees(res.data);
+        setEmployees(formatted);
         showToast("Employees loaded successfully!");
       } catch (err) {
         console.error("Error fetching employees:", err);
