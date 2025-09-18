@@ -12,6 +12,8 @@ class User(SQLModel, table=True):
     role: Optional[str] = Field(max_length=100)
     o_status :Optional[bool]=Field(default=False)
     created_at: Optional[datetime] = Field(default_factory=datetime.now)
-    manager_id: Optional[int] = Field(default=None, foreign_key="employees.id")
-    hr_id: Optional[int] = Field(default=None, foreign_key="employees.id")
+    reset_otp: Optional[str] = Field(default=None, max_length=6)
+    company_email:Optional[str] = Field(max_length=100)
+    
+   
     

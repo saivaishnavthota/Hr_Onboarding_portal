@@ -1,15 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from models.user_model import User
-from schemas.user_schema import UserCreate,ApproveDocsRequest,UsercreateResponse,UserHrAccept,HrApproveRequest, UserResponse, UserLogin, EmployeeOnboardingRequest,EmployeeOnboardingResponse,ResetPasswordRequest,EmployeeOnboardingRequest, ForgotPasswordRequest,Employee,AssignRequest,AssignResponse
-from utils.email import send_login_email,send_onboarding_email
+from models.onboarding_model import candidate
+from schemas.user_schema import ResetPasswordResponse, UseronboardingResponse,UserCreate,VerifyOtpRequest,ChangePasswordRequest,ApproveDocsRequest,UsercreateResponse,UserHrAccept,HrApproveRequest, UserResponse, UserLogin, EmployeeOnboardingRequest,EmployeeOnboardingResponse,ResetPasswordRequest,EmployeeOnboardingRequest, ForgotPasswordRequest,Employee,AssignRequest,AssignResponse
+from utils.email import send_login_email,send_onboarding_email,forgot_password_mail
 from auth import get_current_user, create_access_token, verify_password, role_required, hash_password
 from database import get_session
 from sqlalchemy.sql import text
 from models.employee_master_model import EmployeeMaster
 from schemas.employee_master_schema import EmployeeMasterCreate, EmployeeMasterResponse
 import logging
-
+from utils.hash_utils import hash_password
+import random
+from typing import Union
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -17,45 +20,10 @@ router = APIRouter(prefix="/users", tags=["Users"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@router.post("/hr/create_employee", response_model=UserResponse)
-async def create_employee(
-    user: UserCreate,
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_session)
-):
-    # Check if email exists
-    db_user = session.exec(select(User).where(User.email == user.email)).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    # Call stored procedure correctly
-    query = text("SELECT add_employee(:name, :email ,:role,:type)")\
-        .bindparams(name=user.name, email=user.email,role=user.role,type=user.type)
-    temp_password = session.exec(query).scalar()
-
-    session.commit() 
-
-    if not temp_password:
-        raise HTTPException(status_code=500, detail="Failed to create employee")
-
-    # Fetch new user
-    new_user = session.exec(select(User).where(User.email == user.email)).first()
-    if not new_user:
-        raise HTTPException(status_code=500, detail="Failed to retrieve created employee")
-
-    # Send login email
-    await send_login_email(user.email, temp_password)
-
-    return UsercreateResponse(
-        employeeId=new_user.id,
-        name=new_user.name,
-        
-        message=f"Employee created successfully with ID: {new_user.id}"
-    )
 
 
 @router.post("/hr/approve", response_model=UserHrAccept)
-async def hr_accept(data: HrApproveRequest, db: Session = Depends(get_session)):
+async def hr_accept(data: HrApproveRequest, session: Session = Depends(get_session)):
     # Find employee
     user = db.query(users).filter(users.id == data.employee_id).first()
     if not user:
@@ -63,8 +31,8 @@ async def hr_accept(data: HrApproveRequest, db: Session = Depends(get_session)):
 
     # Update onboarding status
     employee.o_status = True
-    db.commit()
-    db.refresh(employee)
+    session.commit()
+    session.refresh(employee)
 
     return UserHrAccept(
         employee_id=employee.id,
@@ -73,87 +41,187 @@ async def hr_accept(data: HrApproveRequest, db: Session = Depends(get_session)):
     )
 
 
-@router.post("/login", response_model=UserResponse)
+@router.post("/login", response_model=Union[UserResponse, UseronboardingResponse])
 async def login(user: UserLogin, session: Session = Depends(get_session)):
     email = user.email.strip().lower()
     password = user.password.strip()
 
-    # Get user by email
-    db_user = session.exec(select(User).where(User.email == email)).first()
+    db_user = session.exec(select(User).where(User.company_email == email)).first()
 
-    if not db_user or not verify_password(password, db_user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if db_user:
+        if not verify_password(password, db_user.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # Create JWT token
-    access_token = create_access_token(
-        data={"sub": db_user.email},
-        
+      
+        access_token = create_access_token(data={"sub": db_user.email})
+
+        return UserResponse(
+            employeeId=db_user.id,
+            name=db_user.name,
+            role=db_user.role,
+            company_email=db_user.company_email,
+            access_token=access_token,
+            onboarding_status=db_user.o_status,
+            message=f"Welcome, {db_user.name}!"
+        )
+
+    onboarding_user = session.exec(
+        select(candidate).where(candidate.email == email)
+    ).first()
+
+    if onboarding_user:
+        if not verify_password(password, onboarding_user.password):
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        access_token = create_access_token(data={"sub": onboarding_user.email})
+
+        return UseronboardingResponse(
+            
+            employeeId= onboarding_user.id,
+            name= onboarding_user.name,
+            email= onboarding_user.email,
+            onboarding_status= onboarding_user.o_status,
+            role=onboarding_user.role,
+            access_token=access_token,
+            type=onboarding_user.role,
+           
+
+        )
+
+    # 3. Not found anywhere
+    raise HTTPException(status_code=404, detail="User not found")
+
+@router.post("/reset_onboarding_password")
+async def reset_onboarding_password(employee_id: int, new_password: str, session: Session = Depends(get_session)):
+    onboarding_user = session.get(candidate, employee_id)
+    if not onboarding_user:
+        raise HTTPException(status_code=404, detail="Onboarding employee not found")
+
+    # Move user to employees table with hashed password
+    hashed_pwd = hash_password(new_password)
+    new_user = User(
+        name=onboarding_user.email.split("@")[0],  # or fetch from details
+        email=onboarding_user.email,
+        password_hash=hashed_pwd,
+        role="Employee",  # default
+        o_status="Active"
     )
 
-    return UserResponse(
-        employeeId=db_user.id,
-        name=db_user.name,
-        role=db_user.role,
-        email=db_user.email,
-        access_token=access_token,  
-        onboarding_status=db_user.o_status,
-        message=f"Welcome, {db_user.name}!"
-    )
+    session.add(new_user)
+    session.delete(onboarding_user)  # remove from onboarding
+    session.commit()
+    session.refresh(new_user)
+
+    return {"status": "success", "message": "Password set successfully. Please login again."}
 
 # ----------------------------
 # Reset Password
 # ----------------------------
-@router.post("/reset_password")
-async def reset_password(req: ResetPasswordRequest, session: Session = Depends(get_session)):
-    email = req.email.strip().lower()
-    old_password = req.current_password.strip()
-    new_password = req.new_password.strip()
 
-    # 1️⃣ Check if the email exists
-    statement = select(User).where(User.email == email)
-    db_user = session.exec(statement).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="Email not found")
+from utils.hash_utils import hash_password  # make sure you use hashing (bcrypt, passlib)
+@router.post("/verify_otp")
+async def verify_otp(req: VerifyOtpRequest, session: Session = Depends(get_session)):
+    """
+    Verify the OTP sent to the user's email
+    """
+    try:
+        employee = session.exec(
+            select(User).where(User.email == req.email.lower())
+        ).first()
 
-    # 2️⃣ Verify old password
-    if not verify_password(old_password, db_user.password_hash):
-        raise HTTPException(status_code=401, detail="Current password is incorrect")
+        if not employee:
+            raise HTTPException(status_code=404, detail="Email not found")
 
-    # 3️⃣ Hash the new password and update
-    db_user.password_hash = hash_password(new_password)
-    session.add(db_user)
-    session.commit()
+        if employee.reset_otp != req.otp:
+            raise HTTPException(status_code=400, detail="Invalid OTP")
 
-    return {"status": "success", "message": "Password updated successfully"}
-    
+       
 
-# ----------------------------
-# Forgot Password
-# ----------------------------
+        # Mark as verified (you can also store a flag in DB like otp_verified=True)
+        return {"status": "success", "message": "OTP verified successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/change_password")
+async def change_password(req: ChangePasswordRequest, session: Session = Depends(get_session)):
+    """
+    Change password after OTP verification
+    """
+    try:
+        employee = session.exec(
+            select(Employee).where(User.email == req.email.lower())
+        ).first()
+
+        if not employee:
+            raise HTTPException(status_code=404, detail="Email not found")
+
+        # Optional: you can require otp_verified flag here if you set it in verify_otp
+        employee.password_hash = hash_password(req.new_password)
+        employee.reset_otp = None
+        employee.reset_otp_expires_at = None
+
+        session.add(employee)
+        session.commit()
+        session.refresh(employee)
+
+        return {"status": "success", "message": "Password updated successfully"}
+
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/forgot_password")
 async def forgot_password(req: ForgotPasswordRequest, session: Session = Depends(get_session)):
     try:
-        # Bind email parameter correctly
-        query = text("SELECT forgot_password(:email)").bindparams(email=req.email.lower())
-        temp_password = session.exec(query).first()
-
-        if not temp_password:
+        employee = session.exec(select(User).where(User.email == req.email.lower())).first()
+        if not employee:
             raise HTTPException(status_code=404, detail="Email not found")
 
-        email_sent = await send_login_email(req.email, temp_password[0] if isinstance(temp_password, tuple) else temp_password)
+        # Generate OTP
+        otp = str(random.randint(100000, 999999))
+        employee.reset_otp = otp
+         # expires in 10 min
+
+        session.add(employee)
+        session.commit()
+        session.refresh(employee)
+
+        # Send OTP via email
+        email_sent = await forgot_password_mail(req.email, f"Your OTP is {otp}")
         if not email_sent:
             raise HTTPException(status_code=500, detail="Failed to send email")
 
-        session.commit()
-        return {"status": "success", "message": f"Temporary password sent to {req.email}"}
+        return {"status": "success", "message": f"OTP sent to {req.email}"}
+
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     
+@router.post("/reset_password", response_model=ResetPasswordResponse)
+def change_password(req: ResetPasswordRequest, session: Session = Depends(get_session)):
+    employee = session.exec(
+        select(User).where(User.company_email == req.email.lower())
+    ).first()
 
-    # ----------------------------
-# Get all managers
-# ----------------------------
+    if not employee:
+        raise HTTPException(status_code=404, detail="Email not found")
+
+    # Verify old password
+    if not verify_password(req.currentPassword, employee.password_hash):
+        raise HTTPException(status_code=400, detail="Invalid old password")
+
+    # Update password
+    employee.password_hash = hash_password(req.new_password)
+
+    session.add(employee)
+    session.commit()
+    session.refresh(employee)
+
+    return {"status": "success", "message": "Password changed successfully"}
+
+
 @router.get("/managers")
 async def display_managers(session: Session = Depends(get_session)):
     statement = select(User.id, User.name).where(User.role == "Manager")
@@ -207,116 +275,6 @@ async def display_employees(session: Session = Depends(get_session)):
         })
     return employees
 
-@router.post("/assign", response_model=EmployeeMasterResponse)
-async def assign_employee(data: EmployeeMasterCreate, session: Session = Depends(get_session)):
-    try:
-        if not (data.emp_id and data.manager1_id and data.hr1_id):
-            raise HTTPException(status_code=400, detail="Missing required data")
-       
-        existing = session.exec(select(EmployeeMaster).where(EmployeeMaster.emp_id == data.emp_id)).first()
- 
-        if existing:
-            existing.manager1_id = data.manager1_id
-            existing.manager2_id = data.manager2_id
-            existing.manager3_id = data.manager3_id
-            existing.hr1_id = data.hr1_id
-            existing.hr2_id = data.hr2_id
-            session.add(existing)
-            session.commit()
-            session.refresh(existing)
-            return existing
-        else:
-            assignment = EmployeeMaster(
-                emp_id=data.emp_id,
-                manager1_id=data.manager1_id,
-                manager2_id=data.manager2_id,
-                manager3_id=data.manager3_id,
-                hr1_id=data.hr1_id,
-                hr2_id=data.hr2_id,
-            )
-            session.add(assignment)
-            session.commit()
-            session.refresh(assignment)
-            return assignment
- 
-    except Exception as e:
-        session.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# Onboarding endpoint
-@router.post("/onboard", response_model=EmployeeOnboardingResponse)
-async def onboard_employee(
-    employee_data: EmployeeOnboardingRequest,
-    session: Session = Depends(get_session)
-):
-    """
-    Onboard a new employee by storing their details in the database
-    using the emp_details stored procedure
-    """
-    try:
-        logger.info(f"Starting onboarding process for employee ID: {employee_data.employee_id}")
-        
-        # Validate session
-        if session is None:
-            raise HTTPException(status_code=500, detail="Database session is not available")
-
-        # Call the PostgreSQL function
-        with session.connection().connection.cursor() as cur:
-            cur.execute(
-                "SELECT emp_details(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);",
-                (
-                    employee_data.employee_id,
-                    employee_data.full_name,
-                    employee_data.contact_no,
-                    employee_data.personal_email,
-                    employee_data.doj,
-                    employee_data.dob,
-                    employee_data.address,
-                    employee_data.gender,
-                    employee_data.graduation_year,
-                    employee_data.work_experience_years,
-                    employee_data.emergency_contact_name,
-                    employee_data.emergency_contact_number,
-                    employee_data.emergency_contact_relation
-                )
-            )
-            
-            # If using the version that returns a message
-            result = cur.fetchone()
-            if result:
-                db_message = result[0]
-                logger.info(f"Database response: {db_message}")
-            
-        session.commit()
-        logger.info(f"Successfully onboarded employee ID: {employee_data.employee_id}")
-        
-        return EmployeeOnboardingResponse(
-            status="success",
-            message="Employee onboarded successfully",
-            employee_id=employee_data.employee_id
-        )
-
-    except Exception as e:
-        session.rollback()
-        logger.error(f"Error onboarding employee {employee_data.employee_id}: {str(e)}")
-        
-        # Handle specific database errors
-        if "duplicate key" in str(e).lower():
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Employee with ID {employee_data.employee_id} already exists"
-            )
-        elif "foreign key" in str(e).lower():
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid employee ID or related data constraint violation"
-            )
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Internal server error: {str(e)}"
-            )
 
 # Get employee details endpoint
 @router.get("/employee/{employee_id}")
@@ -462,23 +420,3 @@ async def update_employee_details(
         )
 
     
-
-# ✅ API Endpoint
-@router.post("/approve-documents")
-def approve_documents(
-    request: ApproveDocsRequest,
-    session: Session = Depends(get_session)
-):
-    employee = session.query(User).filter(User.id == request.employeeId).first()
-
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-
-    # Update onboarding status
-    employee.o_status = True
-    session.commit()
-
-    # Send email
-    send_onboarding_email(employee.email, employee.name)
-
-    return {"message": f"Onboarding completed for {employee.name}", "employeeId": employee.id}

@@ -51,6 +51,10 @@ class AssignEmployeeRequest(SQLModel):
     employee_id: int
     location_id: int
     doj: date
+    to_email:EmailStr
     company_email: EmailStr   # HR provides this
-    managers: list[int]
-    hrs: list[int]
+    manager1_id: int
+    manager2_id: int | None = None
+    manager3_id: int | None = None
+    hr1_id: int
+    hr2_id: int | None = None

@@ -25,7 +25,7 @@ const CreateEmployee = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://127.0.0.1:8000/users/hr/create_employee", formData);
+      const response = await axios.post("http://127.0.0.1:8000/onboarding/create_employee", formData);
 
       showToast(`✅ Employee Created! ID: ${response.data.id}`, false);
 

@@ -11,13 +11,14 @@ export default function LeaveManagement() {
   const [toast, setToast] = useState({ message: null, isError: false });
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
+const user = JSON.parse(localStorage.getItem("user"));
 
   const fetchLeaves = async () => {
     try {
       setLoading(true);
       const [pendingRes, allRes] = await Promise.all([
-        axios.get("http://127.0.0.1:8000/hr/pending-leaves"),
-        axios.get("http://127.0.0.1:8000/hr/all-leaves"),
+        axios.get(`http://127.0.0.1:8000/hr/pending-leaves/${user.id}`),
+        axios.get(`http://127.0.0.1:8000/leave-requests/${user.id}`),
       ]);
       setPendingLeaves(pendingRes.data);
       setAllRequests(allRes.data);

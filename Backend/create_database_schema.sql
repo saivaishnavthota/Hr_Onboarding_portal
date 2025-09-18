@@ -1276,3 +1276,42 @@ BEGIN
 
 END;
 $$;
+
+
+
+CREATE TABLE locations (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL
+);
+CREATE TABLE master_calendar (
+    id SERIAL PRIMARY KEY,
+    location_id INT REFERENCES locations(id) ON DELETE CASCADE,
+    holiday_date DATE NOT NULL,
+    holiday_name VARCHAR(150) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(location_id, holiday_date) 
+);
+
+
+ALTER TABLE employees ADD COLUMN location_id INT REFERENCES locations(id);
+
+
+CREATE OR REPLACE FUNCTION public.set_emp_password(e_email character varying, e_old_pass text, e_new_pass text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+AS $function$
+declare
+stored_hash text;
+begin
+select password_hash into stored_hash
+from employees
+where company_email=e_email;
+if stored_hash is null or crypt(e_old_pass ,stored_hash)<>stored_hash then
+return false;
+end if;
+update employees
+set password_hash=crypt(e_new_pass,gen_salt('bf'))
+where company_email=e_email;
+return true;
+end;
+$function$

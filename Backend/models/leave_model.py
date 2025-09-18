@@ -17,3 +17,21 @@ class LeaveManagement(SQLModel, table=True):
     manager_status: str = Field(default="Pending", max_length=20)
     hr_status: str = Field(default="Pending", max_length=20)
     leave_type: Optional[str] = Field(max_length=20)
+
+class EmployeeManager(SQLModel, table=True):
+    __tablename__ = "employee_managers"
+
+    id: int | None = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", nullable=False)
+    manager_id: int = Field(foreign_key="employees.id", nullable=False)
+    assigned_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class EmployeeHR(SQLModel, table=True):
+    __tablename__ = "employee_hrs"
+
+    id: int | None = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", nullable=False)
+    hr_id: int = Field(foreign_key="employees.id", nullable=False)
+    assigned_at: datetime = Field(default_factory=datetime.utcnow)
+

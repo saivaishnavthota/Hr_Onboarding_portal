@@ -10,12 +10,13 @@ export default function ManagerLeaveManagement() {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // track which leave is being updated
 
+  const user = JSON.parse(localStorage.getItem("user"));
   const fetchLeaves = async () => {
     try {
       setLoading(true);
       const [pendingRes, allRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/hr/pending-leaves"),
-        axios.get("http://localhost:5000/api/hr/all-leaves"),
+        axios.get(`http://127.0.0.1:8000/manager/pending-leaves/${user.id}`),
+        axios.get(`http://127.0.0.1:8000/leave-requests/${user.id}`),
       ]);
       setPendingLeaves(pendingRes.data);
       setAllRequests(allRes.data);
@@ -33,7 +34,7 @@ export default function ManagerLeaveManagement() {
   const handleAction = async (leaveId, action) => {
     try {
       setActionLoading({ id: leaveId, action }); // mark current row loading
-      const res = await axios.post(`http://localhost:5000/api/hr/leave-action/${leaveId}`, {
+      const res = await axios.post(`http://127.0.0.1:8000/manager/leave-action/${leaveId}`, {
         action,
       });
 

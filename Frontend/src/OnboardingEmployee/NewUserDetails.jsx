@@ -18,7 +18,7 @@ const email=user.email;
     personal_email: email,
     dob: "",
     contact_no: "",
-    doj: "",
+   
     address: "",
     graduation_year: "",
     work_experience_years: "",
@@ -46,7 +46,7 @@ const email=user.email;
 
   const handleSaveDraft = async () => {
     try {
-      await axios.post("http://127.0.0.1:8000/users/onboard", employee);
+      await axios.post("http://127.0.0.1:8000/onboarding/details", employee);
       showToast("Draft saved successfully!");
     } catch (err) {
       console.error(err);
@@ -59,7 +59,7 @@ const email=user.email;
       console.log(user)
       console.log(employee)
       
-      const res = await axios.post("http://127.0.0.1:8000/users/onboard", employee);
+      const res = await axios.post("http://127.0.0.1:8000/onboarding/details", employee);
 
       localStorage.setItem("employeeDetails", JSON.stringify(res.data));
       showToast("Employee details submitted successfully!");
@@ -141,16 +141,7 @@ const email=user.email;
                 <option value="Other">Other</option>
               </select>
             </div>
-            <div>
-              <label>Date of Joining</label>
-              <input
-                type="date"
-                name="doj"
-                value={employee.doj}
-                onChange={handleChange}
-                required
-              />
-            </div>
+            
             <div>
               <label>Latest Graduation Year</label>
               <input

@@ -22,32 +22,11 @@ const EmployeeLogin = () => {
   });
 
   const [toast, setToast] = useState({ message: null, isError: false });
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000";
+  const API_BASE_URL =
+    process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:8000";
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  // 🔹 Forgot Password request
-  const handleForgotPassword = async () => {
-    if (!formData.email) {
-      setToast({ message: "Enter your email to reset password.", isError: true });
-      return;
-    }
-
-    try {
-      const { data } = await axios.post(`${API_BASE_URL}/users/forgot-password`, {
-        email: formData.email,
-      });
-
-      setToast({ message: data.message || "Password reset link sent to your email.", isError: false });
-    } catch (err) {
-      console.error("Forgot password error:", err);
-      setToast({
-        message: err.response?.data?.error || "Failed to send reset link.",
-        isError: true,
-      });
-    }
   };
 
   // 🔹 Login request
@@ -63,20 +42,27 @@ const EmployeeLogin = () => {
           id: data.employeeId,
           name: data.name,
           role: data.role,
+          company_email: data.company_email,
           email: data.email,
           onboarding_status: data.onboarding_status,
+          is_new_user: data.is_new_user,
         })
-        
       );
-      console.log(data)
 
       setToast({ message: data.message || "Login successful!", isError: false });
 
       setTimeout(() => {
-        if (!data.onboarding_status) navigate("/new-user-form");
-        else if (data.role === "HR") navigate("/hr-dashboard");
-        else if (data.role === "Manager") navigate("/manager-dashboard");
-        else navigate("/employee-dashboard");
+        if (data.is_new_user) {
+          navigate("/change-password");
+        } else if (!data.onboarding_status) {
+          navigate("/new-user-form");
+        } else if (data.role === "HR") {
+          navigate("/hr-dashboard");
+        } else if (data.role === "Manager") {
+          navigate("/manager-dashboard");
+        } else {
+          navigate("/employee-dashboard");
+        }
       }, 1000);
     } catch (err) {
       console.error("Login error:", err);
@@ -89,7 +75,10 @@ const EmployeeLogin = () => {
 
   useEffect(() => {
     if (toast.message) {
-      const timer = setTimeout(() => setToast({ message: null, isError: false }), 1500);
+      const timer = setTimeout(
+        () => setToast({ message: null, isError: false }),
+        1500
+      );
       return () => clearTimeout(timer);
     }
   }, [toast]);
@@ -103,18 +92,23 @@ const EmployeeLogin = () => {
       <div className="login-right">
         <div className="login-container shadow-lg p-4 rounded">
           <div className="text-center mb-4">
-            <img src={CompanyLogo} alt="Company Logo" className="company-logo mb-3" />
+            <img
+              src={CompanyLogo}
+              alt="Company Logo"
+              className="company-logo mb-3"
+            />
             <h2>Login</h2>
           </div>
 
           {toast.message && (
-            <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
+            <div
+              className={`toast-message ${toast.isError ? "error" : "success"}`}
+            >
               <FontAwesomeIcon
                 icon={toast.isError ? faTimesCircle : faCheckCircle}
                 className="me-2"
               />
               {toast.message}
-              
             </div>
           )}
 
@@ -155,10 +149,15 @@ const EmployeeLogin = () => {
             </button>
           </form>
 
+          {/* 🔹 Redirect to ForgotPassword Page */}
           <p
             className="forgot-password text-center mt-3"
-            style={{ color: "blue", cursor: "pointer", textDecoration: "underline" }}
-            onClick={handleForgotPassword}
+            style={{
+              color: "blue",
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+            onClick={() => navigate("/forgot-password")}
           >
             Forgot Password?
           </p>

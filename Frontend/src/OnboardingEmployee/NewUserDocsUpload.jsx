@@ -110,7 +110,7 @@ export default function NewUserDocsUpload() {
     });
 
     try {
-      await axios.post("http://127.0.0.1:8000/documents/upload", formData);
+      await axios.post("http://127.0.0.1:8000/onboarding/upload", formData);
       showToast("Draft saved successfully!");
     } catch (err) {
       console.error(err);
@@ -132,7 +132,7 @@ export default function NewUserDocsUpload() {
     });
 
     try {
-      await axios.post("http://127.0.0.1:8000/documents/upload", formData);
+      await axios.post("http://127.0.0.1:8000/onboarding/upload", formData);
       showToast("Documents submitted successfully!");
     } catch (err) {
       console.error(err);
@@ -156,7 +156,7 @@ export default function NewUserDocsUpload() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data } = await axios.get("http://127.0.0.1:8000/documents/upload/", {
+        const { data } = await axios.get(`http://127.0.0.1:8000/onboarding/doc/${employeeId}`, {
           withCredentials: true,
         });
         const fetchedFiles = {};

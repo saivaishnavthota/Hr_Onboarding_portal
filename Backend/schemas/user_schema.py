@@ -18,9 +18,20 @@ class UserResponse(SQLModel):
     employeeId: int
     name: str
     role: str
-    email: str
+    company_email: str
     onboarding_status: bool
     message: Optional[str] = None
+    access_token: Optional[str] = None
+
+class UseronboardingResponse(SQLModel):
+    employeeId: int
+    name: str
+    role: str
+    email: str
+    type:str
+    onboarding_status: bool
+    
+    
     access_token: Optional[str] = None
 
 class UserLogin(SQLModel):
@@ -29,13 +40,25 @@ class UserLogin(SQLModel):
     
   
 
-class ResetPasswordRequest(SQLModel):
-    email: EmailStr
-    current_password: str
-    new_password: str
-
 class ForgotPasswordRequest(SQLModel):
     email: EmailStr
+
+class ResetPasswordRequest(SQLModel):
+    email: EmailStr
+    currentPassword: str
+    new_password: str
+
+class ResetPasswordResponse(SQLModel):
+    status: str
+    message: str
+
+class VerifyOtpRequest(SQLModel):
+    email: EmailStr
+    otp: str
+
+class ChangePasswordRequest(SQLModel):
+    email: EmailStr
+    new_password: str
 
 class Employee(SQLModel):
     employeeId: int

@@ -25,8 +25,10 @@ export default function OnboardingDocs() {
 
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get("http://127.0.0.1:8000/users/employees");
-      setEmployees(res.data);
+       
+      const res = await axios.get("http://127.0.0.1:8000/onboarding/all");
+      setEmployees(res.data.data);
+     
     } catch (err) {
       console.error(err);
       showToast("Failed to fetch employees", true);
@@ -35,10 +37,12 @@ export default function OnboardingDocs() {
 
 const handleViewDocuments = async (employee) => {
   setSelectedEmployee(employee);
+  console.log(employee);
   setShowDocModal(true);
   setLoadingDocs(true);
   try {
-    const res = await axios.get(`http://127.0.0.1:8000/documents/emp/${employee.employeeId}`);
+   
+    const res = await axios.get(`http://127.0.0.1:8000/onboarding/doc/${employee.id}`);
 
     // Convert object into array
     const docsArray = Object.entries(res.data)
@@ -48,7 +52,7 @@ const handleViewDocuments = async (employee) => {
         status: value ? "Uploaded" : "Missing",
         
         required: value.required, // or check from your schema
-        fileUrl: value ? `http://127.0.0.1:8000/documents/${employee.employeeId}/${key}` : null,
+        fileUrl: value ? `http://127.0.0.1:8000/onboarding/doc/${employee.id}/${key}` : null,
         fileName: `${key}.pdf`
       }));
 
@@ -74,7 +78,7 @@ const handleViewDocuments = async (employee) => {
     try {
       console.log(selectedEmployee)
       await axios.post(
-        "http://127.0.0.1:8000/users/approve-documents",
+        `http://127.0.0.1:8000/onboarding/hr/approve/${ selectedEmployee.id}`,
         { employeeId: selectedEmployee.employeeId}
       );
 

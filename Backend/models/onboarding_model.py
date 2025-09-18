@@ -32,3 +32,5 @@ class onboard_emp_doc(SQLModel, table=True):
     postgraduation_certificate: Optional[bytes] = None
     passport: Optional[bytes] = None
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+
+

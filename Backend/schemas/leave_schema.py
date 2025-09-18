@@ -3,24 +3,26 @@ from sqlmodel import SQLModel
 from typing import Optional
 from datetime import date, datetime
 
+
 class LeaveCreate(SQLModel):
     employee_id: int
     leave_type: str
     reason: Optional[str]
     start_date: date
     end_date: date
-    no_of_days: int  
+
 
 class LeaveResponse(SQLModel):
     id: int
-    
+    employee_id: int
     leave_type: str
     reason: Optional[str]
     start_date: date
     end_date: date
     no_of_days: int
     status: str
-    reason:str  
+    manager_status: str
+    hr_status: str
     
     
     

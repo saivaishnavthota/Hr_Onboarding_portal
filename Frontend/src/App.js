@@ -20,11 +20,19 @@ import ExpenseDetails from "./Employee/Components/ExpenseDetails";
 import EmployeeForm from "./HR/Components/EmployeeForm";
 import HRExpenseApproval from "./HR/Components/HRExpenseApproval";
 import ManagerAttendance from "./Manager/Components/ManagerAttendance";
+import ManagerExpenseApproval from "./Manager/Components/ManagerExpenseApproval";
+// import AccountExpenseApproval from "./AccountManager/Components/AccountExpenseApproval";
+// import AccountManagerDashboard from "./AccountManager/Components/AccountManagerDashboard";
+import DocumentCollection from "./HR/Components/DocumentCollection";
+import UpdatePassword from "./Employee/Components/UpdatePassword";
+import ForgetPassword from "./Employee/Components/ForgetPassword";
 function App() {
   return (
     <Routes>
-       <Route path="/" element={<EmployeeLogin />} />      
-    <Route path="/new-user-form" element={  < NewUserDetails/> } />
+      <Route path="/" element={<EmployeeLogin />} />      
+      <Route path="/change-password" element={<UpdatePassword />} />
+       <Route path="/forgot-password" element={<ForgetPassword/>} /> 
+      <Route path="/new-user-form" element={  < NewUserDetails/> } />
       <Route path="/new-user-form/docs" element={<NewUserDocsUpload />} />
     <Route
         path="/hr-dashboard/*"
@@ -48,6 +56,8 @@ function App() {
         }
       />
   </Routes>
+
+ 
 
   )
 }

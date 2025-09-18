@@ -78,7 +78,7 @@ async def send_credentials_email(to_email: str, company_email: str, temp_passwor
         body=f"""
         Hello,
 
-        Welcome to the company! Here are your credentials:
+        Welcome to the company Nxzen! Here are your credentials:
 
         Company Email: {company_email}
         Temporary Password: {temp_password}
@@ -93,6 +93,33 @@ async def send_credentials_email(to_email: str, company_email: str, temp_passwor
         message = MessageSchema(
             subject="Your onboarding status",
             recipients=[to_email],
+            body=body,
+            subtype="plain"
+        )
+
+        fm = FastMail(mail_conf)
+        await fm.send_message(message)
+        print(f"✅ Login credentials email sent to {email}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send login credentials email: {e}")
+        return False
+
+async def forgot_password_mail(email:str,otp:str):
+    try:
+        subject="Your otp for forgot password",
+        
+        body=f"""
+        Hello,
+        you otp :{otp}
+        Please change your password after login.
+
+        Regards,
+        HR Team
+        """ 
+        message = MessageSchema(
+            subject="Your onboarding status",
+            recipients=[email],
             body=body,
             subtype="plain"
         )

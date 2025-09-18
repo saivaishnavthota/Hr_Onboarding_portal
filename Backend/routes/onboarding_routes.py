@@ -24,7 +24,7 @@ router=APIRouter(prefix="/onboarding",tags=["onboarding"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@router.post("/create_employee",response_model=UsercreateResponse)
+@router.post("/hr/create_employee",response_model=UsercreateResponse)
 async def create_employee(
     user:UserCreate,
     session:Session=Depends(get_session),
@@ -210,11 +210,8 @@ async def upload_documents(
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-# def get_session():
-#        # Your session creation logic here
-#        pass
 
-@router.get("doc/{employee_id}")
+@router.get("/doc/{employee_id}")
 def list_documents(employee_id: int, session: Session = Depends(get_session)):
     document = session.exec(
         select(onboard_emp_doc).where(onboard_emp_doc.employee_id == employee_id)
@@ -249,7 +246,7 @@ def list_documents(employee_id: int, session: Session = Depends(get_session)):
 
     return response
 
-@router.get("doc/{employee_id}/{doc_type}")
+@router.get("/doc/{employee_id}/{doc_type}")
 def preview_document(employee_id: int, doc_type: str, session: Session = Depends(get_session)):
     document = session.exec(
         select(onboard_emp_doc).where(onboard_emp_doc.employee_id == employee_id)
@@ -354,6 +351,50 @@ async def get_employee_details(
         )
 
 
+@router.get("/all")
+async def get_all_onboarding_employees(session: Session = Depends(get_session)):
+    """
+    Retrieve all employees from the onboarding_employees table
+    """
+    try:
+        if session is None:
+            raise HTTPException(status_code=500, detail="Database session is not available")
+
+        with session.connection().connection.cursor() as cur:
+            cur.execute(
+                """
+                SELECT 
+                    id, name, email, o_status,role,type
+                FROM onboarding_employees
+               
+                """
+            )
+            
+            results = cur.fetchall()
+            
+            if not results:
+                return {
+                    "status": "success",
+                    "data": []
+                }
+
+            columns = ['id', 'name', 'email', 'role', 'type','o_status']
+            employees = [dict(zip(columns, row)) for row in results]
+
+            return {
+                "status": "success",
+                "count": len(employees),
+                "data": employees
+            }
+
+    except Exception as e:
+        logger.error(f"Error retrieving onboarding employees: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
 @router.post("/hr/approve/{onboarding_id}")
 async def approve_employee(onboarding_id: int, session: Session = Depends(get_session)):
     """
@@ -395,8 +436,8 @@ async def assign_employee(data: AssignEmployeeRequest, session: Session = Depend
                     data.location_id,
                     data.doj,
                     data.company_email,
-                    data.managers,
-                    data.hrs
+                    [data.manager1_id, data.manager2_id, data.manager3_id],
+                    [data.hr1_id, data.hr2_id],
                 )
             )
         temp_password = generate_temp_password()
@@ -416,7 +457,7 @@ async def assign_employee(data: AssignEmployeeRequest, session: Session = Depend
         location_name = location_row[0] if location_row else "Not Assigned"
 
         await send_credentials_email(
-            to_email=data.company_email,
+            to_email=data.to_email,
             company_email=data.company_email,
             temp_password=temp_password,  # send plain text
             location=location_name,
@@ -442,3 +483,4 @@ def generate_temp_password(length: int = 10) -> str:
 # Hash password
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
+
