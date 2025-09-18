@@ -9,7 +9,6 @@ import {
  
 export default function ExpenseDetails() {
   const [activeTab, setActiveTab] = useState("submit");
-  
   const [toast, showToast] = useState({ message: null, isError: false });
   const [formData, setFormData] = useState({
     category: "",
@@ -23,6 +22,7 @@ export default function ExpenseDetails() {
   const [expenses, setExpenses] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
  const [expenseDetails, setExpenseDetails] = useState([]);
+ const [filterMonth, setFilterMonth] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user"));
   const employeeId = user?.id;
@@ -30,6 +30,10 @@ export default function ExpenseDetails() {
   // Fetch history from backend
   useEffect(() => {
     if (activeTab === "history") {
+       let url = `http://localhost:8000/expenses/employee/${employeeId}`;
+    if (filterMonth) {
+      url += `?month=${filterMonth}`;
+    }
       axios
         .get(`http://localhost:8000/expenses/employee/${employeeId}`) 
         .then((res) => {
@@ -40,7 +44,7 @@ export default function ExpenseDetails() {
           showToast("Failed to fetch expense history.", true);
         });
     }
-  }, [activeTab, employeeId]);
+  }, [activeTab, employeeId, filterMonth]);
  
   // Handle form changes
   const handleChange = (e) => {
@@ -51,48 +55,59 @@ export default function ExpenseDetails() {
     }));
   };
  
-  // Submit expense
+
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const data = new FormData();
- 
-      // Add employee ID
-      data.append("employee_id", employeeId);
-      data.append("category", formData.category);
-      data.append("amount", formData.amount);
-      data.append("currency", formData.currency);
-      data.append("description", formData.description);
-      data.append("expense_date", formData.expense_date);
-      data.append("tax_included", formData.tax_included);
-      if (formData.attachment) {
-        data.append("file", formData.attachment);
-      }
- 
-      await axios.post("http://localhost:8000/expenses/submit-exp", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
- 
-      alert("Expense submitted!");
- 
-      // Reset form
-      setFormData({
-        category: "",
-        amount: "",
-        currency: "",
-        description: "",
-        expense_date: "",
-        tax_included: false,
-        attachment: null,
-      });
- 
-      // Redirect to history tab
-      setActiveTab("history");
-    } catch (err) {
-      console.error("Error submitting expense:", err);
-      showToast("Failed to submit expense.", true);
+  e.preventDefault();
+    
+  try {
+    const data = new FormData();
+
+    const payload = {
+      employee_id: employeeId,
+      category: formData.category,
+      amount: formData.amount,
+      currency: formData.currency,
+      description: formData.description,
+      expense_date: formData.expense_date,
+      tax_included: formData.tax_included,
+      submitted_at: new Date().toISOString(), // system timestamp
+    };
+
+    // loop through payload and append automatically
+    Object.entries(payload).forEach(([key, value]) => {
+      data.append(key, value);
+    });
+
+    // add file only if present
+    if (formData.attachment) {
+      data.append("file", formData.attachment);
     }
-  };
+
+    await axios.post("http://localhost:8000/expenses/submit-exp", payload, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    alert("Expense submitted!");
+
+    // Reset form
+    setFormData({
+      category: "",
+      amount: "",
+      currency: "",
+      description: "",
+      expense_date: "",
+      tax_included: false,
+      attachment: null,
+    });
+
+    setActiveTab("history");
+  } catch (err) {
+    console.error("Error submitting expense:", err);
+    showToast("Failed to submit expense.", true);
+  }
+};
+
  
   // Clear form
   const handleClear = () => {
@@ -237,6 +252,28 @@ const toggleExpand = async (id) => {
             <button className="btn-clear" onClick={() => setActiveTab("submit")} style={{ marginBottom: "16px" }}>
               ← Back
             </button>
+            
+             {/* Monthly Filter */}
+    <div style={{ marginBottom: "16px" }}>
+      <label htmlFor="month-filter"><strong>Filter by Month:</strong></label>
+      <input
+        type="month"
+        id="month-filter"
+        value={filterMonth}
+        onChange={(e) => setFilterMonth(e.target.value)}
+        style={{ marginLeft: "8px" }}
+      />
+      {filterMonth && (
+        <button
+          className="btn-clear"
+          style={{ marginLeft: "8px" }}
+          onClick={() => setFilterMonth("")}
+        >
+          Clear Filter
+        </button>
+      )}
+    </div>
+
             <ul className="history-list">
               {expenses.map((exp) => (
                 <li key={exp.request_id} className="history-item">

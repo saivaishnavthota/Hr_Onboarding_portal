@@ -58,7 +58,7 @@ function App() {
   //     />
   // </Routes>
 
-  <AssignLeaveHolidays/>
+  <ExpenseDetails/>
 
   )
 }

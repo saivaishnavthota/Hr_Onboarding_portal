@@ -19,12 +19,11 @@ const UpdatePassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 🔹 Get query params
+  
   const queryParams = new URLSearchParams(location.search);
-  const resetToken = queryParams.get("token"); // from email reset link
-  const fromForgot = queryParams.get("from") === "forgot"; // from ForgotPassword redirect
+  const resetToken = queryParams.get("token"); 
+  const fromForgot = queryParams.get("from") === "forgot"; 
 
-  // 🔹 Check new user flag
   const isNewUser =
     JSON.parse(localStorage.getItem("user") || "{}")?.is_new_user || false;
 
@@ -47,7 +46,7 @@ const UpdatePassword = () => {
 
     try {
       if (resetToken || fromForgot) {
-        // 🔹 Forgot password reset flow
+        
         await axios.post(`${API_BASE_URL}/users/reset-password`, {
           token: resetToken,
           newPassword: formData.newPassword,
@@ -56,11 +55,11 @@ const UpdatePassword = () => {
         showToast("Password reset successfully! Redirecting to login...", false);
         setTimeout(() => navigate("/"), 1500);
       } else if (isNewUser) {
-        // 🔹 New user first login → no current password required
+        
         const token = localStorage.getItem("token");
         await axios.post(
           `${API_BASE_URL}/users/change-password`,
-          { newPassword: formData.newPassword },
+          { newPassword: formData.newPassword},
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
