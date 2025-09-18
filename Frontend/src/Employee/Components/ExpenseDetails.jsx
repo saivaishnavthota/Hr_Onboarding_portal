@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "../Styles/ExpenseDetails.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faCheckCircle,
-  faTimesCircle
-} from "@fortawesome/free-solid-svg-icons";
- 
+import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+
 export default function ExpenseDetails() {
   const [activeTab, setActiveTab] = useState("submit");
   const [toast, showToast] = useState({ message: null, isError: false });
@@ -21,21 +18,56 @@ export default function ExpenseDetails() {
   });
   const [expenses, setExpenses] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
- const [expenseDetails, setExpenseDetails] = useState([]);
- const [filterMonth, setFilterMonth] = useState("");
+  const [expenseDetails, setExpenseDetails] = useState([]);
+
+  // Separate filters for year + month
+  const [filterYear, setFilterYear] = useState(new Date().getFullYear());
+  const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
 
   const user = JSON.parse(localStorage.getItem("user"));
   const employeeId = user?.id;
- 
-  // Fetch history from backend
+
+  // Generate years (last 10 + next 5)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 16 }, (_, i) => currentYear - 10 + i);
+
+  // Month options
+  const months = [
+    { value: 1, label: "January" },
+    { value: 2, label: "February" },
+    { value: 3, label: "March" },
+    { value: 4, label: "April" },
+    { value: 5, label: "May" },
+    { value: 6, label: "June" },
+    { value: 7, label: "July" },
+    { value: 8, label: "August" },
+    { value: 9, label: "September" },
+    { value: 10, label: "October" },
+    { value: 11, label: "November" },
+    { value: 12, label: "December" },
+  ];
+
+  // Auto-scroll year dropdown to current year
+  const yearSelectRef = useRef(null);
+  useEffect(() => {
+    if (yearSelectRef.current) {
+      const index = years.findIndex((y) => y === currentYear);
+      if (index >= 0) {
+        yearSelectRef.current.selectedIndex = index;
+        yearSelectRef.current.scrollTop = index * 30;
+      }
+    }
+  }, []);
+
+  // Fetch history when tab or filters change
   useEffect(() => {
     if (activeTab === "history") {
-       let url = `http://localhost:8000/expenses/employee/${employeeId}`;
-    if (filterMonth) {
-      url += `?month=${filterMonth}`;
-    }
+      let url = `http://localhost:8000/expenses/employee/${employeeId}`;
+      if (filterYear && filterMonth) {
+        url += `?month=${String(filterYear)}-${String(filterMonth).padStart(2, "0")}`;
+      }
       axios
-        .get(`http://localhost:8000/expenses/employee/${employeeId}`) 
+        .get(url)
         .then((res) => {
           setExpenses(res.data);
         })
@@ -44,9 +76,8 @@ export default function ExpenseDetails() {
           showToast("Failed to fetch expense history.", true);
         });
     }
-  }, [activeTab, employeeId, filterMonth]);
- 
-  // Handle form changes
+  }, [activeTab, employeeId, filterYear, filterMonth]);
+
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
     setFormData((prev) => ({
@@ -54,62 +85,45 @@ export default function ExpenseDetails() {
       [name]: type === "checkbox" ? checked : type === "file" ? files[0] : value,
     }));
   };
- 
-
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-    
-  try {
-    const data = new FormData();
+    e.preventDefault();
 
-    const payload = {
-      employee_id: employeeId,
-      category: formData.category,
-      amount: formData.amount,
-      currency: formData.currency,
-      description: formData.description,
-      expense_date: formData.expense_date,
-      tax_included: formData.tax_included,
-      submitted_at: new Date().toISOString(), // system timestamp
-    };
+    try {
+      const payload = {
+        employee_id: employeeId,
+        category: formData.category,
+        amount: formData.amount,
+        currency: formData.currency,
+        description: formData.description,
+        expense_date: formData.expense_date,
+        tax_included: formData.tax_included,
+        submitted_at: new Date().toISOString(),
+      };
 
-    // loop through payload and append automatically
-    Object.entries(payload).forEach(([key, value]) => {
-      data.append(key, value);
-    });
+      await axios.post("http://localhost:8000/expenses/submit-exp", payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-    // add file only if present
-    if (formData.attachment) {
-      data.append("file", formData.attachment);
+      alert("Expense submitted!");
+
+      setFormData({
+        category: "",
+        amount: "",
+        currency: "",
+        description: "",
+        expense_date: "",
+        tax_included: false,
+        attachment: null,
+      });
+
+      setActiveTab("history");
+    } catch (err) {
+      console.error("Error submitting expense:", err);
+      showToast("Failed to submit expense.", true);
     }
+  };
 
-    await axios.post("http://localhost:8000/expenses/submit-exp", payload, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    alert("Expense submitted!");
-
-    // Reset form
-    setFormData({
-      category: "",
-      amount: "",
-      currency: "",
-      description: "",
-      expense_date: "",
-      tax_included: false,
-      attachment: null,
-    });
-
-    setActiveTab("history");
-  } catch (err) {
-    console.error("Error submitting expense:", err);
-    showToast("Failed to submit expense.", true);
-  }
-};
-
- 
-  // Clear form
   const handleClear = () => {
     setFormData({
       category: "",
@@ -121,34 +135,37 @@ export default function ExpenseDetails() {
       attachment: null,
     });
   };
- const fetchExpenseDetails = async (requestId) => {
-  try {
-    const res = await axios.get(`http://localhost:8000/expenses/details/${requestId}`);
-    setExpenseDetails(Array.isArray(res.data) ? res.data : []);
-  } catch (err) {
-    console.error("Error fetching expense details:", err);
-    showToast("Failed to fetch expense details.", true);
-  }
-};
-  
-const toggleExpand = async (id) => {
-  if (expandedId === id) {
-    setExpandedId(null);
-    setExpenseDetails([]);
-  } else {
-    setExpandedId(id);
-    await fetchExpenseDetails(id);
-  }
-};
- 
+
+  const fetchExpenseDetails = async (requestId) => {
+    try {
+      const res = await axios.get(
+        `http://localhost:8000/expenses/details/${requestId}`
+      );
+      setExpenseDetails(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Error fetching expense details:", err);
+      showToast("Failed to fetch expense details.", true);
+    }
+  };
+
+  const toggleExpand = async (id) => {
+    if (expandedId === id) {
+      setExpandedId(null);
+      setExpenseDetails([]);
+    } else {
+      setExpandedId(id);
+      await fetchExpenseDetails(id);
+    }
+  };
+
   return (
     <div className="expense-container">
       {toast.message && (
         <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
-            <FontAwesomeIcon
-                icon={toast.isError ? faTimesCircle : faCheckCircle}
-                className="me-2"
-              />
+          <FontAwesomeIcon
+            icon={toast.isError ? faTimesCircle : faCheckCircle}
+            className="me-2"
+          />
           {toast.message}
         </div>
       )}
@@ -169,14 +186,19 @@ const toggleExpand = async (id) => {
             Expense History
           </button>
         </div>
- 
+
         {/* Submit Form */}
         {activeTab === "submit" && (
           <form onSubmit={handleSubmit}>
             <h2>Expense Request</h2>
- 
+
             <label>Expense Category</label>
-            <select name="category" value={formData.category} onChange={handleChange} required>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              required
+            >
               <option value="">Select Category</option>
               <option value="Travel">Travel</option>
               <option value="Food">Food</option>
@@ -187,15 +209,26 @@ const toggleExpand = async (id) => {
               <option value="Miscellaneous">Miscellaneous</option>
               <option value="Other">Other</option>
             </select>
- 
+
             <div className="form-row">
               <div>
                 <label>Amount</label>
-                <input type="number" name="amount" value={formData.amount} onChange={handleChange} required />
+                <input
+                  type="number"
+                  name="amount"
+                  value={formData.amount}
+                  onChange={handleChange}
+                  required
+                />
               </div>
               <div>
                 <label>Currency</label>
-                <select name="currency" value={formData.currency} onChange={handleChange} required>
+                <select
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleChange}
+                  required
+                >
                   <option value="">Select Currency</option>
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
@@ -203,14 +236,14 @@ const toggleExpand = async (id) => {
                 </select>
               </div>
             </div>
- 
+
             <label>Description</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
             />
- 
+
             <label>Expense Date</label>
             <input
               type="date"
@@ -220,7 +253,7 @@ const toggleExpand = async (id) => {
               required
               max={new Date().toISOString().split("T")[0]}
             />
- 
+
             <label className="checkbox-label">
               <input
                 type="checkbox"
@@ -230,12 +263,16 @@ const toggleExpand = async (id) => {
               />
               Tax is included in the amount
             </label>
- 
+
             <label>Attachment (Supported Formats: PDF, JPG, PNG)</label>
             <input type="file" name="attachment" onChange={handleChange} />
- 
+
             <div className="button-row">
-              <button type="button" className="btn-clear" onClick={handleClear}>
+              <button
+                type="button"
+                className="btn-clear"
+                onClick={handleClear}
+              >
                 Clear Form
               </button>
               <button type="submit" className="btn-submit">
@@ -244,36 +281,71 @@ const toggleExpand = async (id) => {
             </div>
           </form>
         )}
- 
+
         {/* Expense History */}
         {activeTab === "history" && (
           <div className="history">
             <h2>Expense History</h2>
-            <button className="btn-clear" onClick={() => setActiveTab("submit")} style={{ marginBottom: "16px" }}>
+            <button
+              className="btn-clear"
+              onClick={() => setActiveTab("submit")}
+              style={{ marginBottom: "16px" }}
+            >
               ← Back
             </button>
-            
-             {/* Monthly Filter */}
-    <div style={{ marginBottom: "16px" }}>
-      <label htmlFor="month-filter"><strong>Filter by Month:</strong></label>
-      <input
-        type="month"
-        id="month-filter"
-        value={filterMonth}
-        onChange={(e) => setFilterMonth(e.target.value)}
-        style={{ marginLeft: "8px" }}
-      />
-      {filterMonth && (
+
+            {/* Filters */}
+            <div className="filters">
+      <div className="filter-group">
+        <label htmlFor="year-filter"><strong>Year:</strong></label>
+        <select
+          id="year-filter"
+          value={filterYear}
+          onChange={(e) => setFilterYear(e.target.value)}
+        >
+          <option value="">All</option>
+          {Array.from({ length: 6 }, (_, i) => {
+            const year = new Date().getFullYear() - i;
+            return (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+
+      <div className="filter-group">
+        <label htmlFor="month-filter"><strong>Month:</strong></label>
+        <select
+          id="month-filter"
+          value={filterMonth}
+          onChange={(e) => setFilterMonth(e.target.value)}
+        >
+          <option value="">All</option>
+          {[
+            "January","February","March","April","May","June",
+            "July","August","September","October","November","December"
+          ].map((month, idx) => (
+            <option key={idx + 1} value={idx + 1}>
+              {month}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {(filterYear || filterMonth) && (
         <button
           className="btn-clear"
-          style={{ marginLeft: "8px" }}
-          onClick={() => setFilterMonth("")}
+          onClick={() => {
+            setFilterYear("");
+            setFilterMonth("");
+          }}
         >
-          Clear Filter
+          Reset
         </button>
       )}
     </div>
-
             <ul className="history-list">
               {expenses.map((exp) => (
                 <li key={exp.request_id} className="history-item">
@@ -326,25 +398,24 @@ const toggleExpand = async (id) => {
                           </p>
                         ))}
 
-                          <table className="expense-details-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Reason</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {expenseDetails.map((detail, idx) => (
-                    <tr key={idx}>
-                      <td>{detail.name}</td>
-                      <td>{detail.reason || "-"}</td>
-                      <td>{detail.status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
+                      <table className="expense-details-table">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {expenseDetails.map((detail, idx) => (
+                            <tr key={idx}>
+                              <td>{detail.name}</td>
+                              <td>{detail.reason || "-"}</td>
+                              <td>{detail.status}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </li>
@@ -356,5 +427,3 @@ const toggleExpand = async (id) => {
     </div>
   );
 }
- 
- 

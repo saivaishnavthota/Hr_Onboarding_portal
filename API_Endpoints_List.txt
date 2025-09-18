@@ -1,0 +1,264 @@
+======================================================================
+                    HR ONBOARDING PORTAL - API ENDPOINTS
+======================================================================
+
+This document contains all API endpoints found in the Frontend source code.
+Base URL: http://127.0.0.1:8000 (Primary Backend)
+
+======================================================================
+👥 USER MANAGEMENT APIs
+======================================================================
+
+POST   http://127.0.0.1:8000/users/hr/create_employee
+       - Creates a new employee record
+       - Used in: CreateEmployee.jsx
+
+GET    http://127.0.0.1:8000/users/employees
+       - Fetches list of all employees
+       - Used in: EmployeeForm.jsx, Employees.jsx, ManagerEmployeeAttendence.jsx
+
+GET    http://127.0.0.1:8000/users/managers
+       - Fetches list of all managers
+       - Used in: EmployeeForm.jsx
+
+GET    http://127.0.0.1:8000/users/hrs
+       - Fetches list of all HR personnel
+       - Used in: EmployeeForm.jsx
+
+POST   http://127.0.0.1:8000/users/assign
+       - Assigns managers and HR to employees
+       - Used in: EmployeeForm.jsx
+
+POST   http://127.0.0.1:8000/users/login
+       - User authentication/login
+       - Used in: EmployeeLogin.jsx
+
+POST   http://127.0.0.1:8000/users/forgot-password
+       - Initiates password reset process
+       - Used in: ForgetPassword.jsx
+
+POST   http://127.0.0.1:8000/users/verify-reset-code
+       - Verifies password reset code
+       - Used in: ForgetPassword.jsx
+
+POST   http://127.0.0.1:8000/users/reset-password
+       - Resets password using token
+       - Used in: UpdatePassword.jsx
+
+POST   http://127.0.0.1:8000/users/change-password
+       - Changes password for logged-in user
+       - Used in: UpdatePassword.jsx
+
+POST   http://127.0.0.1:8000/users/onboard
+       - Onboards new user/employee
+       - Used in: NewUserDetails.jsx
+
+POST   http://127.0.0.1:8000/users/approve-documents
+       - Approves employee documents
+       - Used in: OnboardingDocs.jsx
+
+POST   http://127.0.0.1:8000/users/reject-documents
+       - Rejects employee documents with reason
+       - Used in: OnboardingDocs.jsx
+
+PUT    http://127.0.0.1/users/employees
+       - Updates employee information
+       - Used in: OnboardingDocs.jsx
+
+======================================================================
+📄 DOCUMENT MANAGEMENT APIs
+======================================================================
+
+POST   http://127.0.0.1:8000/documents/upload
+       - Uploads employee documents
+       - Used in: NewUserDocsUpload.jsx, EmployeeUploadDocs.jsx
+
+GET    http://127.0.0.1:8000/documents/upload/
+       - Fetches uploaded documents data
+       - Used in: NewUserDocsUpload.jsx
+
+GET    http://127.0.0.1:8000/documents/{employeeId}
+       - Fetches documents for specific employee
+       - Used in: EmployeeUploadDocs.jsx
+
+GET    http://127.0.0.1:8000/documents/{employeeId}/{key}
+       - Fetches specific document file
+       - Used in: OnboardingDocs.jsx
+
+POST   http://127.0.0.1:8000/show-documents/{employeeId}
+       - Shows/requests documents for employee
+       - Used in: DocumentCollection.jsx
+
+======================================================================
+🏖️ LEAVE MANAGEMENT APIs
+======================================================================
+
+GET    http://127.0.0.1:8000/hr/pending-leaves
+       - Fetches pending leave requests (HR view)
+       - Used in: LeaveManagement.jsx
+
+GET    http://127.0.0.1:8000/hr/all-leaves
+       - Fetches all leave requests (HR view)
+       - Used in: LeaveManagement.jsx
+
+POST   http://127.0.0.1:8000/hr/leave-action/{leaveId}
+       - Approve/reject leave requests
+       - Used in: LeaveManagement.jsx
+
+GET    http://127.0.0.1:8000/leave_balances/{employee_id}
+       - Fetches leave balance for employee
+       - Used in: ApplyLeave.jsx
+
+POST   https://c369d458db4e.ngrok-free.app/apply_leave
+       - Apply for leave (external ngrok endpoint)
+       - Used in: ManagerApplyLeave.jsx
+
+======================================================================
+💰 EXPENSE MANAGEMENT APIs
+======================================================================
+
+GET    http://localhost:8000/expenses/employee/{employeeId}
+       - Fetches expenses for specific employee
+       - Used in: ExpenseDetails.jsx
+
+POST   http://localhost:8000/expenses/submit-exp
+       - Submits new expense request
+       - Used in: ExpenseDetails.jsx
+
+GET    http://localhost:8000/expenses/details/{requestId}
+       - Fetches expense details by request ID
+       - Used in: ExpenseDetails.jsx
+
+PUT    http://localhost:8000/expenses/mgr-upd-status/{id}
+       - Updates expense status (Manager approval)
+       - Used in: HRExpenseApproval.jsx, ManagerExpenseApproval.jsx, AccountExpenseApproval.jsx
+
+======================================================================
+🏢 LOCATION & GENERAL APIs
+======================================================================
+
+GET    http://127.0.0.1:8000/locations
+       - Fetches list of company locations
+       - Used in: EmployeeForm.jsx
+
+GET    /locations
+       - Fetches locations (relative URL)
+       - Used in: AssignLeaveHolidays.jsx
+
+GET    /employees
+       - Fetches employees (relative URL)
+       - Used in: AssignLeaveHolidays.jsx
+
+GET    /holidays
+       - Fetches holiday list
+       - Used in: AssignLeaveHolidays.jsx
+
+======================================================================
+👨‍💼 MANAGER-SPECIFIC APIs (Alternative Port 5000)
+======================================================================
+
+GET    http://localhost:5000/api/leave-balances/{employeeId}
+       - Fetches leave balances (Manager view)
+       - Used in: ManagerApplyLeave.jsx
+
+GET    http://localhost:5000/api/leaves/{employeeId}
+       - Fetches leave history (Manager view)
+       - Used in: ManagerApplyLeave.jsx
+
+GET    http://localhost:5000/api/hr/pending-leaves
+       - Fetches pending leaves (Manager view)
+       - Used in: ManagerLeaveManagement.jsx
+
+GET    http://localhost:5000/api/hr/all-leaves
+       - Fetches all leaves (Manager view)
+       - Used in: ManagerLeaveManagement.jsx
+
+POST   http://localhost:5000/api/hr/leave-action/{leaveId}
+       - Leave action by manager
+       - Used in: ManagerLeaveManagement.jsx
+
+======================================================================
+🏦 ACCOUNT MANAGER APIs
+======================================================================
+
+POST   http://localhost:5000/generate-schema
+       - Generates dynamic form schema
+       - Used in: ReqForm.jsx
+
+POST   http://localhost:5000/job-requisition
+       - Submits job requisition
+       - Used in: ReqForm.jsx
+
+======================================================================
+📊 EMPLOYEE PROFILE APIs
+======================================================================
+
+GET    http://localhost:5000/api/employee/{employeeId}
+       - Fetches employee profile data
+       - Used in: Profile.jsx
+
+======================================================================
+📁 MOCK DATA APIs (Development/Testing)
+======================================================================
+
+GET    mock-data.json
+       - Mock expense data
+       - Used in: HRExpenseApproval.jsx, AccountExpenseApproval.jsx, DocumentCollection.jsx
+
+GET    mock-employee.json
+       - Mock employee data
+       - Used in: OnboardingDocs.jsx
+
+GET    http://localhost:5000/...
+       - Generic mock endpoint
+       - Used in: ManagerExpenseApproval.jsx
+
+======================================================================
+📋 SUMMARY BY HTTP METHOD
+======================================================================
+
+GET Requests (22 endpoints):
+- Employee data retrieval
+- Leave balance & history queries
+- Document fetching
+- Location & hierarchy data
+- Mock data for testing
+
+POST Requests (15 endpoints):
+- User creation & onboarding
+- Authentication & password management
+- Document uploads & approvals
+- Leave applications & approvals
+- Expense submissions
+- Schema generation
+
+PUT Requests (4 endpoints):
+- Employee information updates
+- Expense status updates
+
+======================================================================
+🔧 BASE URLS CONFIGURATION
+======================================================================
+
+Primary Backend:     http://127.0.0.1:8000
+Alternative Backend: http://localhost:8000
+Manager Service:     http://localhost:5000
+External Service:    https://c369d458db4e.ngrok-free.app
+Environment Variable: REACT_APP_API_BASE_URL
+
+======================================================================
+📝 NOTES
+======================================================================
+
+1. Multiple base URLs suggest different microservices or environments
+2. Some endpoints use mock data for development/testing
+3. The ngrok URL indicates external tunnel usage for specific features
+4. Environment variables are used for configurable API base URLs
+5. Port 8000 appears to be the main backend service
+6. Port 5000 seems to handle manager-specific operations
+7. Some relative URLs (starting with /) may be configured via proxy
+
+======================================================================
+Generated on: ${new Date().toISOString()}
+Source: Frontend/src directory analysis
+======================================================================

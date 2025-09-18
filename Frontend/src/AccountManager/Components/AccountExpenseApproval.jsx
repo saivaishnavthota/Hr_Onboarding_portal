@@ -4,32 +4,59 @@ import "../../Manager/Styles/ManagerExpenseApproval.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 
-export default function AccountExpenseApproval() {
-
+export default function AccountManagerExpenseApproval() {
   const [expenses, setExpenses] = useState([]);
+  const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [editingStatus, setEditingStatus] = useState({});
   const [toast, setToast] = useState({ message: "", isError: false });
 
-  
-  const [rejectModal, setRejectModal] = useState({
+  const [reasonModal, setReasonModal] = useState({
     isOpen: false,
     expenseId: null,
     reason: "",
+    status: "",
   });
+
+  const [monthFilter, setMonthFilter] = useState("");
+  const [yearFilter, setYearFilter] = useState("");
 
   useEffect(() => {
     fetchExpenses();
   }, []);
 
+  useEffect(() => {
+    applyFilters();
+  }, [monthFilter, yearFilter, expenses]);
+
   const fetchExpenses = async () => {
     try {
-      const res = await axios.get("mock-data.json");
+      const res = await axios.get("mock-data.json"); 
       setExpenses(res.data);
+      setFilteredExpenses(res.data);
     } catch (err) {
       console.error("Error fetching expenses:", err);
       showToast("Failed to load expenses", true);
     }
+  };
+
+  const applyFilters = () => {
+    let data = [...expenses];
+
+    if (monthFilter) {
+      data = data.filter(
+        (exp) =>
+          new Date(exp.submitted_at).getMonth() + 1 === parseInt(monthFilter)
+      );
+    }
+
+    if (yearFilter) {
+      data = data.filter(
+        (exp) => new Date(exp.submitted_at).getFullYear() === parseInt(yearFilter)
+      );
+    }
+
+    setFilteredExpenses(data);
   };
 
   const toggleExpand = (id) => {
@@ -44,9 +71,8 @@ export default function AccountExpenseApproval() {
     const status = editingStatus[id];
     if (!status) return;
 
-
-    if (status === "Rejected") {
-      setRejectModal({ isOpen: true, expenseId: id, reason: "" });
+    if (status === "Rejected" || status === "Approved") {
+      setReasonModal({ isOpen: true, expenseId: id, reason: "", status });
       return;
     }
 
@@ -71,30 +97,34 @@ export default function AccountExpenseApproval() {
     }
   };
 
-  const handleRejectSubmit = async () => {
-    if (!rejectModal.reason.trim()) {
-      showToast("Please provide a rejection reason", true);
+  const handleSubmit = async () => {
+    if (!reasonModal.reason.trim()) {
+      showToast("Please provide a reason", true);
       return;
     }
 
     try {
       await axios.put(
-        `http://localhost:8000/expenses/mgr-upd-status/${rejectModal.expenseId}`,
+        `http://localhost:8000/expenses/mgr-upd-status/${reasonModal.expenseId}`,
         null,
-        { params: { status: "Rejected", reason: rejectModal.reason } }
+        {
+          params: {
+            status: reasonModal.status,
+            reason: reasonModal.reason,
+          },
+        }
       );
-    
+
       fetchExpenses();
-      showToast(`Status updated to "Rejected"`, false);
-    
-       setRejectModal({ isOpen: false, expenseId: null, reason: "" });
+      showToast(`Status updated to "${reasonModal.status}"`, false);
+
+      setReasonModal({ isOpen: false, expenseId: null, reason: "", status: "" });
 
       setEditingStatus((prev) => {
         const updated = { ...prev };
-        delete updated[rejectModal.expenseId];
+        delete updated[reasonModal.expenseId];
         return updated;
       });
-
     } catch (err) {
       console.error("Error saving Manager rejection:", err);
       showToast("Failed to update status", true);
@@ -108,9 +138,77 @@ export default function AccountExpenseApproval() {
     }, 2000);
   };
 
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "-";
+    return new Date(timestamp).toLocaleString();
+  };
+
+  // 🔹 get unique years from data for filter
+  const years = [
+    ...new Set(expenses.map((exp) => new Date(exp.submitted_at).getFullYear())),
+  ];
+
   return (
     <div className="manager-expense-container">
       <h4 className="heading">Account Manager Expense Approvals</h4>
+
+      
+<div className="filters" style={{ textAlign: "center", marginBottom: "15px" }}>
+  <select
+    value={monthFilter}
+    onChange={(e) => setMonthFilter(e.target.value)}
+    style={{ marginRight: "10px", padding: "8px", width: "150px" }}
+  >
+    <option value="">All Months</option>
+    <option value="1">January</option>
+    <option value="2">February</option>
+    <option value="3">March</option>
+    <option value="4">April</option>
+    <option value="5">May</option>
+    <option value="6">June</option>
+    <option value="7">July</option>
+    <option value="8">August</option>
+    <option value="9">September</option>
+    <option value="10">October</option>
+    <option value="11">November</option>
+    <option value="12">December</option>
+  </select>
+
+  <select
+    value={yearFilter}
+    onChange={(e) => setYearFilter(e.target.value)}
+    style={{ marginRight: "10px", padding: "8px", width: "120px" }}
+  >
+     <option value="">All</option>
+          {Array.from({ length: 10 }, (_, i) => {
+            const year = new Date().getFullYear() - i;
+            return (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            );
+          })}
+  </select>
+
+  {/* 🔹 Reset Button */}
+  <button
+    onClick={() => {
+      setMonthFilter("");
+      setYearFilter("");
+    }}
+    style={{
+      padding: "8px 12px",
+      background: "#f44336",
+      color: "white",
+      border: "none",
+      borderRadius: "5px",
+      cursor: "pointer",
+    }}
+  >
+    Reset Filters
+  </button>
+</div>
+
 
       {toast.message && (
         <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
@@ -129,12 +227,14 @@ export default function AccountExpenseApproval() {
             <th>Category</th>
             <th>Amount</th>
             <th>Details</th>
+            <th>Submitted On</th>
             <th>Status</th>
             <th>Action</th>
+            <th>Reason</th>
           </tr>
         </thead>
         <tbody>
-          {expenses.map((exp) => {
+          {filteredExpenses.map((exp) => {
             const currentStatus = exp.status || "Pending";
             const selectedStatus = editingStatus[exp.id] || currentStatus;
 
@@ -157,6 +257,7 @@ export default function AccountExpenseApproval() {
                       {expandedId === exp.id ? "Hide" : "View"}
                     </button>
                   </td>
+                  <td>{formatDate(exp.submitted_at)}</td>
                   <td>
                     <span className={`status ${currentStatus.toLowerCase()}`}>
                       {currentStatus}
@@ -182,11 +283,12 @@ export default function AccountExpenseApproval() {
                       Save
                     </button>
                   </td>
+                  <td>{exp.reason || "-"}</td>
                 </tr>
 
                 {expandedId === exp.id && (
                   <tr className="expand-row">
-                    <td colSpan="6">
+                    <td colSpan="8">
                       <div className="details">
                         <p>
                           <strong>Description:</strong> {exp.description}
@@ -219,15 +321,14 @@ export default function AccountExpenseApproval() {
         </tbody>
       </table>
 
-      
-      {rejectModal.isOpen && (
+      {reasonModal.isOpen && (
         <div className="modal-overlay">
           <div className="modal-card">
-            <h5>Reason for Rejection</h5>
+            <h5>Reason</h5>
             <textarea
-              value={rejectModal.reason}
+              value={reasonModal.reason}
               onChange={(e) =>
-                setRejectModal((prev) => ({
+                setReasonModal((prev) => ({
                   ...prev,
                   reason: e.target.value,
                 }))
@@ -238,12 +339,17 @@ export default function AccountExpenseApproval() {
               <button
                 className="btn-cancel"
                 onClick={() =>
-                  setRejectModal({ isOpen: false, expenseId: null, reason: "" })
+                  setReasonModal({
+                    isOpen: false,
+                    expenseId: null,
+                    reason: "",
+                    status: "",
+                  })
                 }
               >
                 Cancel
               </button>
-              <button className="btn-confirm" onClick={handleRejectSubmit}>
+              <button className="btn-confirm" onClick={handleSubmit}>
                 Submit
               </button>
             </div>

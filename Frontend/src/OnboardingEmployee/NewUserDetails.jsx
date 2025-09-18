@@ -5,20 +5,13 @@ import { useNavigate } from "react-router-dom";
 
 export default function NewUserDetails() {
   const navigate = useNavigate();
-  
-
-
-const user = JSON.parse(localStorage.getItem("user") || "{}");
-const employeeId = user.id;
-const email=user.email;
-
+ const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [employee, setEmployee] = useState({
-    employee_id:employeeId,
+    employee_id:"",
     full_name: "",
-    personal_email: email,
+    personal_email: "",
     dob: "",
     contact_no: "",
-    doj: "",
     address: "",
     graduation_year: "",
     work_experience_years: "",
@@ -27,7 +20,15 @@ const email=user.email;
     emergency_contact_relation: "",
     gender: "",
   });
-
+useEffect(() => {
+ 
+  if (user?.email) {
+    setEmployee((prev) => ({
+      ...prev,
+      personal_email: user.email,
+    }));
+  }
+}, []);
   const [toast, setToast] = useState({ message: null, isError: false });
 
   // ✅ Load saved form data if exists
@@ -141,16 +142,7 @@ const email=user.email;
                 <option value="Other">Other</option>
               </select>
             </div>
-            <div>
-              <label>Date of Joining</label>
-              <input
-                type="date"
-                name="doj"
-                value={employee.doj}
-                onChange={handleChange}
-                required
-              />
-            </div>
+         
             <div>
               <label>Latest Graduation Year</label>
               <input

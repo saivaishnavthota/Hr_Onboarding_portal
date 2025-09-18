@@ -196,3 +196,38 @@ form textarea {
 .rejection-reason {
   color: #d9534f; 
 }
+/* Filters container */
+.filters {
+  display: flex;
+  justify-content: center;  /* Center horizontally */
+  align-items: center;
+  gap: 20px; /* spacing between year, month, and clear button */
+  margin-bottom: 16px;
+}
+
+/* Each filter (label + select) */
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-weight: bold;
+}
+.filter-group select {
+  width: 160px;       
+  height: 40px;       
+  padding: 6px 10px;  
+  font-size: 16px;    
+  border: 1px solid #ccc;
+  border-radius: 8px; 
+  background-color: #fff;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.filter-group select:focus {
+  border-color: #007bff; 
+  outline: none;
+}

@@ -1,5 +1,5 @@
 .manager-expense-container {
-  max-width: 1200px;
+  max-width: 1300px;
   margin: auto;
   margin-top:50px;
   padding: 20px;
@@ -23,7 +23,7 @@ th{
 }
 .manager-table th,
 .manager-table td {
-  padding: 12px;
+  padding: 10px;
   border: 1px solid #ddd;
 }
 
@@ -92,7 +92,7 @@ th{
 }
 .dropdown-btn {
   color: rgb(3, 3, 3);
- padding: 10px 10px;
+  padding: 10px 10px;
   cursor: pointer;
   border-radius: 6px;
   margin-right: 10px;
@@ -200,7 +200,7 @@ th{
 
 /* Confirm Button */
 .btn-confirm {
-  background: #d9534f; /* red for reject */
+  background: #314ffc; /* red for reject */
   color: #fff;
   border: none;
   padding: 8px 14px;
@@ -210,9 +210,6 @@ th{
   transition: background 0.2s;
 }
 
-.btn-confirm:hover {
-  background: #c9302c;
-}
 
 /* 🔹 Smooth Fade-in Animation */
 @keyframes fadeIn {
