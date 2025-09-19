@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import List
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Request
-from sqlmodel import Session, select
+from typing import List, Optional
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Request, Query
+from sqlmodel import Session, select, extract
 from database import get_session
 from models.expenses_model import ExpenseRequest, ExpenseAttachment, ExpenseHistory
 from utils.code import generate_request_code
@@ -30,6 +30,7 @@ def submit_expense(
     expense_date: str = Form(...),
     tax_included: bool = Form(False),
     file: UploadFile = File(None),
+    submit_date: str =Form(...),
     session: Session = Depends(get_session),
 ):
     req = ExpenseRequest(
@@ -39,8 +40,9 @@ def submit_expense(
         amount=amount,
         currency=currency,
         description=description,
-        expense_date=datetime.strptime(expense_date, "%Y-%m-%d"),
+        expense_date=datetime.strptime(expense_date, "%Y-%m-%d").date(),
         tax_included=tax_included,
+        submit_date=datetime.strptime(submit_date, "%Y-%m-%d").date(),
     )
     session.add(req)
     session.commit()
@@ -89,27 +91,44 @@ def submit_expense(
         "description": req.description,
         "expense_date": req.expense_date,
         "tax_included": req.tax_included,
+        "submit_date": req.submit_date,
         "status": req.status,
         "attachments": [attachment_data] if attachment_data else [],
     }
 
-@router.get("/employee/{employee_id}", response_model=List[dict])
-def list_my_expenses(employee_id: int, session: Session = Depends(get_session)):
-    expenses = session.query(ExpenseRequest).filter(
+@router.get("/my-expenses", response_model=List[dict])
+def list_my_expenses(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)  
+):
+
+    employee_id = current_user.id  
+
+    query = session.query(ExpenseRequest).filter(
         ExpenseRequest.employee_id == employee_id
-    ).order_by(ExpenseRequest.created_at.desc()).all()
+    )
+
+    if year and month:
+        query = query.filter(
+            extract("year", ExpenseRequest.created_at) == year,
+            extract("month", ExpenseRequest.created_at) == month
+        )
+
+    expenses = query.order_by(ExpenseRequest.created_at.desc()).all()
 
     result = []
     for exp in expenses:
         history_entries = []
         for h in getattr(exp, "history", []):  
             user = session.get(User, h.action_by)
-            action_by_name = user.name if user else str(h.action_by)  
+            action_by_name = user.name if user else str(h.action_by)
 
             history_entries.append(
                 {
-                    "action_by": h.action_by,          
-                    "action_by_name": action_by_name,   
+                    "action_by": h.action_by,
+                    "action_by_name": action_by_name,
                     "action_role": h.action_role,
                     "action": h.action,
                     "reason": h.reason,
@@ -133,24 +152,27 @@ def list_my_expenses(employee_id: int, session: Session = Depends(get_session)):
                     {
                         "attachment_id": att.attachment_id,
                         "file_name": att.file_name,
-                        "file_path": att.file_path,  # already public URL
+                        "file_path": att.file_path,
                         "file_type": att.file_type,
                         "file_size": att.file_size,
                     }
                     for att in exp.attachments
                 ],
-                "history": history_entries, 
+                "history": history_entries,
             }
         )
 
     return result
 
-
-
-
 @router.get("/mgr-exp-list", response_model=List[dict])
-def list_all_expenses(request: Request, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
-
+def list_all_expenses(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+    year: int = Query(..., description="Year of expenses"),
+    month: int = Query(..., description="Month of expenses"),
+):
+    #employees under current manager
     employee_links = session.exec(
         select(EmployeeMaster.emp_id).where(
             (EmployeeMaster.manager1_id == current_user.id) |
@@ -162,27 +184,32 @@ def list_all_expenses(request: Request, session: Session = Depends(get_session),
     if not employee_links:
         return []
 
-    expenses = session.exec(select(ExpenseRequest).where(
+    #filter by year + month
+    expenses = session.exec(
+        select(ExpenseRequest).where(
             (ExpenseRequest.employee_id.in_(employee_links)) &
             (ExpenseRequest.status.in_([
                 "pending_manager_approval",
                 "pending_hr_approval",
                 "mgr_rejected",
-                "approved"
-            ]))
+                "approved",
+                "carried_forward"   #include carried forward
+            ])) &
+            (extract("year", ExpenseRequest.created_at) == year) &
+            (extract("month", ExpenseRequest.created_at) == month)
         )
         .order_by(ExpenseRequest.created_at.desc())
     ).all()
     
     result = []
 
+    #build response
     for exp in expenses:
         employee = session.get(User, exp.employee_id)
 
         attachment_url = None
         if exp.attachments:
             att = exp.attachments[0]
-            # keep relative path after "uploads/"
             rel_path = att.file_path.replace("\\", "/").split("uploads/")[-1]
             attachment_url = f"{request.base_url}uploads/{rel_path}"
 
@@ -208,12 +235,15 @@ def list_all_expenses(request: Request, session: Session = Depends(get_session),
                 "status": exp.status,
                 "description": exp.description,
                 "date": exp.expense_date.strftime("%Y-%m-%d"),
+                "submitted_at": exp.created_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "taxIncluded": exp.tax_included,
                 "attachment": attachment_url,
-                "manager_rejection_reason": manager_reason or "-",
+                "reason": manager_reason or "-",   
             }
         )
+
     return result
+
 
 @router.put("/mgr-upd-status/{request_id}")
 def update_expense_status(
@@ -259,31 +289,39 @@ def update_expense_status(
         "new_status": expense.status
     }
 
-
 @router.get("/hr-exp-list", response_model=List[dict])
 def list_hr_expenses(
     request: Request,
+    year: int = Query(..., description="Year of expenses"),
+    month: int = Query(..., description="Month of expenses"),
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    
+    #employees under this HR
     employee_links = session.exec(
         select(EmployeeMaster.emp_id).where(
-            (EmployeeMaster.hr1_id == current_user.id)
-            | (EmployeeMaster.hr2_id == current_user.id)
+            (EmployeeMaster.hr1_id == current_user.id) |
+            (EmployeeMaster.hr2_id == current_user.id)
         )
     ).all()
 
     if not employee_links:
         return []
 
+    #filter expense requests by employee + status + year + month
     expenses = session.exec(
         select(ExpenseRequest)
         .where(
             ExpenseRequest.employee_id.in_(employee_links),
-            ExpenseRequest.status.in_(
-                ["pending_hr_approval", "pending_account_mgr_approval", "hr_rejected", "approved"]
-            ),
+            ExpenseRequest.status.in_([
+                "pending_hr_approval",
+                "pending_account_mgr_approval",
+                "hr_rejected",
+                "approved",
+                "carried_forward"  #include carried forward
+            ]),
+            extract("year", ExpenseRequest.created_at) == year,
+            extract("month", ExpenseRequest.created_at) == month
         )
         .order_by(ExpenseRequest.created_at.desc())
     ).all()
@@ -292,22 +330,29 @@ def list_hr_expenses(
     for exp in expenses:
         employee = session.get(User, exp.employee_id)
 
-        attachment_url = None
-        if exp.attachments:
-            att = exp.attachments[0]
-            rel_path = att.file_path.replace("\\", "/").split("uploads/")[-1]
-            attachment_url = f"{request.base_url}uploads/{rel_path}"
+        #Attachments (all)
+        attachments = [
+            {
+                "attachment_id": att.attachment_id,
+                "file_name": att.file_name,
+                "file_path": f"{request.base_url}{att.file_path.replace('\\', '/')}",
+                "file_type": att.file_type,
+                "file_size": att.file_size,
+            }
+            for att in exp.attachments
+        ]
 
+        #Expense history
         history_entries = session.exec(
             select(ExpenseHistory)
             .where(ExpenseHistory.request_id == exp.request_id)
-            .order_by(ExpenseHistory.created_at.desc())
+            .order_by(ExpenseHistory.created_at.asc())
         ).all()
 
         hr_reason = None
         for h in history_entries:
             if h.action_role == "HR" and h.reason:
-                hr_reason = h.reason 
+                hr_reason = h.reason
 
         result.append(
             {
@@ -320,9 +365,10 @@ def list_hr_expenses(
                 "status": exp.status,
                 "description": exp.description,
                 "date": exp.expense_date.strftime("%Y-%m-%d"),
+                "submitted_at": exp.created_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "taxIncluded": exp.tax_included,
-                "attachment": attachment_url,
-                "hr_rejection_reason": hr_reason or "-",
+                "attachments": attachments,
+                "reason": hr_reason or "-",
             }
         )
 
@@ -373,24 +419,44 @@ def update_hr_status(
     }
 
 @router.get("/acc-mgr-exp-list", response_model=List[dict])
-def list_acc_mgr_expenses(request: Request, session: Session = Depends(get_session)):
+def list_acc_mgr_expenses(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+    year: int = Query(..., description="Year of expenses"),
+    month: int = Query(..., description="Month of expenses"),
+):
+    #account manager's location
+    acc_mgr = session.get(User, current_user.id)
+    if not acc_mgr or not acc_mgr.location_id:
+        return []
+
+    #Filter expenses for employees in the same location
     expenses = session.exec(
         select(ExpenseRequest)
-        .where(ExpenseRequest.status.in_(["pending_account_mgr_approval","approved", "acc_mgr_rejected"]))
+        .join(User, User.id == ExpenseRequest.employee_id)
+        .where(
+            User.location_id == acc_mgr.location_id,
+            ExpenseRequest.status.in_(["pending_account_mgr_approval", "approved", "acc_mgr_rejected"]),
+            extract("year", ExpenseRequest.created_at) == year,
+            extract("month", ExpenseRequest.created_at) == month
+        )
         .order_by(ExpenseRequest.created_at.desc())
     ).all()
 
     result = []
+
     for exp in expenses:
         employee = session.get(User, exp.employee_id)
 
+        # Handle attachment URL
         attachment_url = None
         if exp.attachments:
             att = exp.attachments[0]
             rel_path = att.file_path.replace("\\", "/").split("uploads/")[-1]
             attachment_url = f"{request.base_url}uploads/{rel_path}"
 
-
+        # Get expense history
         history_entries = session.exec(
             select(ExpenseHistory)
             .where(ExpenseHistory.request_id == exp.request_id)
@@ -400,11 +466,12 @@ def list_acc_mgr_expenses(request: Request, session: Session = Depends(get_sessi
         acc_mgr_reason = None
         for h in history_entries:
             if h.action_role == "Account Manager" and h.reason:
-                acc_mger_reason = h.reason 
+                acc_mgr_reason = h.reason
 
         result.append(
             {
                 "id": exp.request_id,
+                # "employeeID": employee.id if employee else "Unknown",
                 "employeeName": employee.name if employee else "Unknown",
                 "employeeEmail": employee.email if employee else "Unknown",
                 "category": exp.category,
@@ -413,11 +480,13 @@ def list_acc_mgr_expenses(request: Request, session: Session = Depends(get_sessi
                 "status": exp.status,
                 "description": exp.description,
                 "date": exp.expense_date.strftime("%Y-%m-%d"),
+                "submitted_at": exp.created_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "taxIncluded": exp.tax_included,
                 "attachment": attachment_url,
-                "account_manager_rejection_reason": acc_mgr_reason or "-",
+                "reason": acc_mgr_reason or "-",
             }
         )
+
     return result
 
 
@@ -444,7 +513,6 @@ def update_acc_mgr_status(
         expense.status = "approved"
     elif status == "Rejected":
         expense.status = "acc_mgr_rejected"
-        expense.account_mgr_rejection_reason = reason
 
     expense.updated_at = datetime.utcnow()
     session.add(expense)
