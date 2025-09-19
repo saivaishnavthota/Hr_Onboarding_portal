@@ -4,6 +4,7 @@ from database import create_tables_database
 from routes import user_routes, document_routes, attendance_routes, expenses_routes
 from middleware.cors import add_cors_middleware
 from fastapi.staticfiles import StaticFiles
+from scheduler import start_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -13,6 +14,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+@app.on_event("startup")
+def on_startup():
+    start_scheduler()
 
 add_cors_middleware(app)
 
