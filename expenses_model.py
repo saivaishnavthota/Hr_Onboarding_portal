@@ -1,13 +1,12 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
-from models.user_model import User
 
 
 class ExpenseAttachment(SQLModel, table=True):
     __tablename__ = "expense_attachments"
 
-    attachment_id: Optional[int] = Field(default=None, primary_key=True) 
+    attachment_id: Optional[int] = Field(default=None, primary_key=True)
     request_id: int = Field(foreign_key="expense_requests.request_id")
     file_name: str
     file_path: str
@@ -30,13 +29,16 @@ class ExpenseRequest(SQLModel, table=True):
     description: Optional[str] = None
     expense_date: datetime
     tax_included: bool = False
-    status: str = "pending_manager_approval"
-
+    status: str = Field(default="pending_manager_approval")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    submit_date: date = Field(default_factory=date.today)
 
-    attachments: List[ExpenseAttachment] = Relationship(back_populates="expense_request")
-    history: List["ExpenseHistory"] = Relationship(back_populates="expense_request")  
+    # Relationships
+    attachments: List["ExpenseAttachment"] = Relationship(back_populates="expense_request")
+    history: List["ExpenseHistory"] = Relationship(back_populates="expense_request")
+    employee: Optional["User"] = Relationship(back_populates="expense_requests")
+
 
 
 class ExpenseHistory(SQLModel, table=True):
@@ -45,9 +47,12 @@ class ExpenseHistory(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     request_id: int = Field(foreign_key="expense_requests.request_id")
     action_by: int = Field(foreign_key="employees.id")
-    action_role: str 
-    action: str      
+    action_role: str
+    action: str
     reason: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    expense_request: Optional[ExpenseRequest] = Relationship(back_populates="history")
+    expense_request: Optional["ExpenseRequest"] = Relationship(back_populates="history")
+
+from models.user_model import User
+ExpenseRequest.update_forward_refs()
