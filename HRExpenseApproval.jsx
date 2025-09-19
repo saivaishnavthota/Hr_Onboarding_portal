@@ -6,9 +6,12 @@ import { faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons"
 
 export default function HRExpenseApproval() {
   const [expenses, setExpenses] = useState([]);
+  const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [editingStatus, setEditingStatus] = useState({});
   const [toast, setToast] = useState({ message: "", isError: false });
+
+  const token = localStorage.getItem("token");
 
   const [reasonModal, setReasonModal] = useState({
     isOpen: false,
@@ -17,21 +20,55 @@ export default function HRExpenseApproval() {
     status: "",
   });
 
+  const currentDate = new Date();
+  const [monthFilter, setMonthFilter] = useState((currentDate.getMonth() + 1).toString()); // 1-12
+  const [yearFilter, setYearFilter] = useState(currentDate.getFullYear().toString());
+
   useEffect(() => {
     fetchExpenses();
   }, []);
 
+  useEffect(() => {
+    applyFilters();
+  }, [monthFilter, yearFilter, expenses]);
+
   const fetchExpenses = async () => {
     try {
-      const token = localStorage.getItem("token");
+
+      const params = {};
+      if (yearFilter) params.year = yearFilter;
+      if (monthFilter) params.month = monthFilter;
+
       const res = await axios.get("http://localhost:8000/expenses/hr-exp-list", {
         headers: { Authorization: `Bearer ${token}` },
+        params,
       });
+
       setExpenses(res.data);
+      setFilteredExpenses(res.data);
     } catch (err) {
       console.error("Error fetching expenses:", err);
       showToast("Failed to load expenses", true);
     }
+  };
+
+  const applyFilters = () => {
+    let data = [...expenses];
+
+    if (monthFilter) {
+      data = data.filter(
+        (exp) =>
+          new Date(exp.submitted_at).getMonth() + 1 === parseInt(monthFilter)
+      );
+    }
+
+    if (yearFilter) {
+      data = data.filter(
+        (exp) => new Date(exp.submitted_at).getFullYear() === parseInt(yearFilter)
+      );
+    }
+
+    setFilteredExpenses(data);
   };
 
   const toggleExpand = (id) => {
@@ -51,20 +88,14 @@ export default function HRExpenseApproval() {
       return;
     }
 
-    await submitStatusUpdate(id, status, "");
-  };
-
-  const submitStatusUpdate = async (requestId, status, reason) => {
     try {
-      const token = localStorage.getItem("token");
-      const formData = new FormData();
-      formData.append("status", status);
-      if (reason) formData.append("reason", reason);
-
       await axios.put(
-        `http://localhost:8000/expenses/hr-upd-status/${requestId}`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `http://localhost:8000/expenses/hr-upd-status/${id}`,
+        null,
+        {
+          params: { status },
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
       fetchExpenses();
@@ -72,13 +103,11 @@ export default function HRExpenseApproval() {
 
       setEditingStatus((prev) => {
         const updated = { ...prev };
-        delete updated[requestId];
+        delete updated[id];
         return updated;
       });
-
-      setReasonModal({ isOpen: false, expenseId: null, reason: "", status: "" });
     } catch (err) {
-      console.error("Error saving HR status:", err);
+      console.error("Error saving Manager status:", err);
       showToast("Failed to update status", true);
     }
   };
@@ -88,11 +117,41 @@ export default function HRExpenseApproval() {
       showToast("Please provide a reason", true);
       return;
     }
-    await submitStatusUpdate(
-      reasonModal.expenseId,
-      reasonModal.status,
-      reasonModal.reason
-    );
+
+    const formData = new FormData();
+    formData.append("status", reasonModal.status);
+    formData.append("reason", reasonModal.reason);
+
+    try {
+      await axios.put(
+        `http://localhost:8000/expenses/hr-upd-status/${reasonModal.expenseId}`,
+        formData,
+        {
+          params: {
+            status: reasonModal.status,
+            reason: reasonModal.reason,
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      fetchExpenses();
+      showToast(`Status updated to "${reasonModal.status}"`, false);
+
+      setReasonModal({ isOpen: false, expenseId: null, reason: "", status: "" });
+
+      setEditingStatus((prev) => {
+        const updated = { ...prev };
+        delete updated[reasonModal.expenseId];
+        return updated;
+      });
+    } catch (err) {
+      console.error("Error saving Manager rejection:", err);
+      showToast("Failed to update status", true);
+    }
   };
 
   const showToast = (message, isError = false) => {
@@ -102,9 +161,78 @@ export default function HRExpenseApproval() {
     }, 2000);
   };
 
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "-";
+    return new Date(timestamp).toLocaleString();
+  };
+
+  // 🔹 get unique years from data for filter
+  const years = [
+    ...new Set(expenses.map((exp) => new Date(exp.submitted_at).getFullYear())),
+  ];
+
   return (
     <div className="manager-expense-container">
       <h4 className="heading">HR Expense Approvals</h4>
+
+      {/* 🔹 Month & Year Filters */}
+      {/* 🔹 Month & Year Filters */}
+      <div className="filters" style={{ textAlign: "center", marginBottom: "15px" }}>
+        <select
+          value={monthFilter}
+          onChange={(e) => setMonthFilter(e.target.value)}
+          style={{ marginRight: "10px", padding: "8px", width: "150px" }}
+        >
+          <option value="">All Months</option>
+          <option value="1">January</option>
+          <option value="2">February</option>
+          <option value="3">March</option>
+          <option value="4">April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+          <option value="7">July</option>
+          <option value="8">August</option>
+          <option value="9">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+
+        <select
+          value={yearFilter}
+          onChange={(e) => setYearFilter(e.target.value)}
+          style={{ marginRight: "10px", padding: "8px", width: "120px" }}
+        >
+          <option value="">All</option>
+          {Array.from({ length: 10 }, (_, i) => {
+            const year = new Date().getFullYear() - i;
+            return (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            );
+          })}
+        </select>
+
+        {/* 🔹 Reset Button */}
+        <button
+          onClick={() => {
+            setMonthFilter("");
+            setYearFilter("");
+          }}
+          style={{
+            padding: "8px 12px",
+            background: "#f44336",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          Reset Filters
+        </button>
+      </div>
+
 
       {toast.message && (
         <div className={`toast-message ${toast.isError ? "error" : "success"}`}>
@@ -123,13 +251,14 @@ export default function HRExpenseApproval() {
             <th>Category</th>
             <th>Amount</th>
             <th>Details</th>
+            <th>Submitted On</th>
             <th>Status</th>
             <th>Action</th>
             <th>Reason</th>
           </tr>
         </thead>
         <tbody>
-          {expenses.map((exp) => {
+          {filteredExpenses.map((exp) => {
             const currentStatus = exp.status || "Pending";
             const selectedStatus = editingStatus[exp.id] || currentStatus;
 
@@ -152,6 +281,7 @@ export default function HRExpenseApproval() {
                       {expandedId === exp.id ? "Hide" : "View"}
                     </button>
                   </td>
+                  <td>{formatDate(exp.submitted_at)}</td>
                   <td>
                     <span className={`status ${currentStatus.toLowerCase()}`}>
                       {currentStatus}
@@ -177,12 +307,12 @@ export default function HRExpenseApproval() {
                       Save
                     </button>
                   </td>
-                  <td>{exp.hr_rejection_reason || "-"}</td>
+                  <td>{exp.reason || "-"}</td>
                 </tr>
 
                 {expandedId === exp.id && (
                   <tr className="expand-row">
-                    <td colSpan="6">
+                    <td colSpan="8">
                       <div className="details">
                         <p>
                           <strong>Description:</strong> {exp.description}
@@ -194,17 +324,22 @@ export default function HRExpenseApproval() {
                           <strong>Tax Included:</strong>{" "}
                           {exp.taxIncluded ? "Yes" : "No"}
                         </p>
-                        {exp.attachment && (
+                        {exp.attachments && exp.attachments.length > 0 && (
                           <p>
-                            <a
-                              href={exp.attachment}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              View Attachment
-                            </a>
+                            {exp.attachments.map((att) => (
+                              <a
+                                key={att.attachment_id}
+                                href={att.file_path}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ display: "block", marginBottom: "5px" }}
+                              >
+                                View Attachment
+                              </a>
+                            ))}
                           </p>
                         )}
+
                       </div>
                     </td>
                   </tr>
@@ -215,11 +350,10 @@ export default function HRExpenseApproval() {
         </tbody>
       </table>
 
-      
       {reasonModal.isOpen && (
         <div className="modal-overlay">
           <div className="modal-card">
-            <h5>Reason for Rejection {reasonModal.status === "Rejected" ? "Rejection" : "Approval"}</h5>
+            <h5>Reason</h5>
             <textarea
               value={reasonModal.reason}
               onChange={(e) =>
@@ -234,7 +368,12 @@ export default function HRExpenseApproval() {
               <button
                 className="btn-cancel"
                 onClick={() =>
-                  setReasonModal({ isOpen: false, expenseId: null, reason: "" , status: "",})
+                  setReasonModal({
+                    isOpen: false,
+                    expenseId: null,
+                    reason: "",
+                    status: "",
+                  })
                 }
               >
                 Cancel
