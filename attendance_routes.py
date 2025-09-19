@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, text, select
 from database import get_session
 from schemas.attendance_schema import AttendanceCreate, AttendanceResponse
-from typing import Dict, List
+from typing import Dict, List, Optional
 from datetime import date, datetime, timedelta
 from auth import get_current_user
 from models.user_model import User
 from models.attendance_model import Attendance
-
+from sqlalchemy import func
+from datetime import date
 
 router = APIRouter(tags=["Attendance"])
 
@@ -62,6 +63,40 @@ async def get_attendance(
     return records
 
 
+@router.get("/attendance/daily")
+async def get_daily_attendance(
+    year: int = Query(..., description="Year filter"),
+    month: Optional[int] = Query(None, description="Month filter"),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        query = select(Attendance).where(Attendance.employee_id == current_user.id)
+        query = query.where(func.extract("year", Attendance.date) == year)
+
+        if month:
+            query = query.where(func.extract("month", Attendance.date) == month)
+
+        records = session.exec(query).all()
+
+        formatted = [
+            {
+                "date": r.date,
+                "action": r.action,
+                "hours": r.hours,
+                "project": r.project_name,  
+                "subTask": r.sub_task       
+            }
+            for r in records
+        ]
+
+        return formatted
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 @router.get("/attendance/summary/{employee_id}")
 async def get_monthly_summary(
     employee_id: int,
@@ -98,7 +133,7 @@ async def get_monthly_summary(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 
 @router.get("/attendance/hr-assigned")
 async def get_assigned_hr_employees_summary(
