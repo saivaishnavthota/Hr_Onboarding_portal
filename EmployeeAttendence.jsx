@@ -89,22 +89,19 @@ export default function EmployeeAttendence() {
       });
 
 
-      const res = await axios.post(
-        "http://127.0.0.1:8000/attendanc",
-        attendance,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (res.data.success) {
-        setToast({ message: res.data.message || "Attendance submitted successfully!", isError: false });
+      const response = await fetch(`http://127.0.0.1:8000/attendance`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`  // pass token
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setToast({ message: data.message || "Attendance submitted successfully!", isError: false });
       } else {
-        setToast({ message: res.data.error || "Failed to submit attendance.", isError: true });
+        setToast({ message: data.error || "Failed to submit attendance.", isError: true });
       }
     } catch (err) {
       console.error("Attendance submit error:", err);
