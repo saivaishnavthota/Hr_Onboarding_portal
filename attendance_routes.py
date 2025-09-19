@@ -18,11 +18,15 @@ async def save_attendance(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
+    
+    VALID_ACTIONS = ["Present", "WFH", "Leave"]
     try:
 
         employee_id = current_user.id 
 
         for date_str, entry in data.items():
+            if entry.action not in VALID_ACTIONS:
+                continue
             session.execute(
                 text("""
                     SELECT save_attendance(
@@ -267,3 +271,4 @@ async def get_assigned_mgr_employees_summary(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
