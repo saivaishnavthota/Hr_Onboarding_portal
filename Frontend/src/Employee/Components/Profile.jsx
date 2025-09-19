@@ -1,49 +1,53 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import "../Styles/Profile.css";
 
 export default function Profile() {
   const [employee, setEmployee] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    
-    const employeeId = localStorage.getItem("employeeId");
+   useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-    fetch(`http://localhost:5000/api/employee/${employeeId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setEmployee(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching employee profile:", err);
-        setError("Failed to load profile.");
-        setLoading(false);
-      });
+    axios
+      .get(`http://localhost:8080/api/employees/${user.employee_id}`)
+      .then((res) => setEmployee(res.data))
+      .catch((err) => console.error("Error fetching employee:", err));
   }, []);
 
-  if (loading) return <p className="text-center">Loading profile...</p>;
-  if (error) return <p className="text-center text-danger">{error}</p>;
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    navigate("/");
+  };
+
+  if (!employee) {
+    return <div className="loading">Loading...</div>;
+  }
 
   return (
-    <div className="employee-profile container py-4">
-      <h3 className="text-center mb-4">My Profile</h3>
-
+    <div className="profile-container">
       <div className="profile-card">
-        <div className="profile-header text-center">
-          <h4>{employee.name}</h4>
-          <p className="text-muted">{employee.designation}</p>
+        <h2 className="profile-title">Employee Profile</h2>
+
+        <div className="profile-grid">
+          <p><span>Name:</span> {employee.name}</p>
+          <p><span>Email:</span> {employee.email}</p>
+
+          <p><span>Employment Type:</span> {employee.employmentType}</p>
+          <p><span>Role:</span> {employee.role}</p>
+
+          <p><span>Contact Number:</span> {employee.contactNumber}</p>
+          <p><span>Date of Joining:</span> {employee.dateOfJoining}</p>
+          <p><span>Location:</span> {employee.location}</p>
+
+          <p><span>Assigned Managers:</span> {employee.assignedManagers?.join(", ")}</p>
+          <p><span>Assigned HRs:</span> {employee.assignedHRs?.join(", ")}</p>
         </div>
 
-        <div className="profile-details">
-          <p><strong>Employee ID:</strong> {employee.id}</p>
-          <p><strong>Email:</strong> {employee.email}</p>
-          <p><strong>Phone:</strong> {employee.phone}</p>
-          <p><strong>Department:</strong> {employee.department}</p>
-          <p><strong>Date of Joining:</strong> {employee.joining_date}</p>
-          <p><strong>Manager:</strong> {employee.manager}</p>
-        </div>
+        <button className="logout-btn" onClick={handleLogout}>
+          Logout
+        </button>
       </div>
     </div>
   );

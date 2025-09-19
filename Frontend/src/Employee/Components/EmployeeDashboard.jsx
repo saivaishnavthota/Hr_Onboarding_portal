@@ -57,7 +57,11 @@ export default function EmployeeDashboard() {
           <img src={Logo} alt="Company Logo" className="logo-img" />
           <h2 className="logo-text">Employee Dashboard</h2>
         </div>
-        <div className="profile" style={{ display: "flex", alignItems: "center", gap: "8px", height: "100%" }}>
+         <div
+    className="profile"
+    style={{ display: "flex", alignItems: "center", gap: "8px", height: "100%", cursor: "pointer" }}
+    onClick={() => navigate("/employee-dashboard/profile")} 
+  >
           <FontAwesomeIcon icon={faCircleUser} size="2x" />
           <span>{username || "Guest"}</span>
         </div>

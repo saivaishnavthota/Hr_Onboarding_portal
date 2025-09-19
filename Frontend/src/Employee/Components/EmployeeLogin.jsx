@@ -51,10 +51,9 @@ const EmployeeLogin = () => {
       setToast({ message: data.message || "Login successful!", isError: false });
 
       setTimeout(() => {
-        if (data.is_new_user) {
-          navigate("/change-password");
-        } else if (!data.onboarding_status) {
-          navigate("/new-user-form");
+        if (data.onboarding_status === false) {
+         // New user must change password first
+        navigate("/change-password");
         } else if (data.role === "HR") {
           navigate("/hr-dashboard");
         } else if (data.role === "Manager") {

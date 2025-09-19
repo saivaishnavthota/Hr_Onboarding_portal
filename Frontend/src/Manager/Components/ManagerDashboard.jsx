@@ -9,6 +9,7 @@ import ManagerExpenseApproval from "./ManagerExpenseApproval";
 import UpdatePassword from "../../Employee/Components/UpdatePassword";
 import ManagerEmployeeAttendence from "./ManagerEmployeeAttendence";
 import ManagerAttendence from "./ManagerAttendance";
+import Profile from "../../Employee/Components/Profile";
 import {
   faArrowLeft,
   faArrowRight,
@@ -63,7 +64,11 @@ export default function ManagerDashboard() {
           <img src={Logo} alt="Company Logo" className="logo-img" />
           <h2 className="logo-text">Manager Dashboard</h2>
         </div>
-        <div className="profile" style={{ display: "flex", alignItems: "center", gap: "8px", height: "100%" }}>
+       <div
+    className="profile"
+    style={{ display: "flex", alignItems: "center", gap: "8px", height: "100%", cursor: "pointer" }}
+    onClick={() => navigate("/manager-dashboard/profile")} 
+  >
           <FontAwesomeIcon icon={faCircleUser} size="2x" />
           <span>{username || "Guest"}</span>
         </div>
@@ -110,6 +115,7 @@ export default function ManagerDashboard() {
             <Route path="leave-manage" element={<ManagerLeaveManagement />} />
             <Route path="expense-manage" element={<ManagerExpenseApproval />} />
             <Route path="change-password" element={<UpdatePassword />} />
+             <Route path="profile" element={<Profile />} />
           </Routes>
         </main>
       </div>

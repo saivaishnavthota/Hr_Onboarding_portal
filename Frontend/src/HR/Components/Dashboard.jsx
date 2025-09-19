@@ -7,6 +7,7 @@ import EmployeeForm from "./EmployeeForm";
 import OnboardingDocs from "./OnboardingDocs";
 import LeaveManagement from "./LeaveManagement";
 import UpdatePassword from "../../Employee/Components/UpdatePassword";
+import Profile from "../../Employee/Components/Profile";
 import { useLocation,Link, Routes, Route, useNavigate } from "react-router-dom";
 import {
   faArrowLeft,
@@ -25,6 +26,8 @@ import {
 import "../Styles/Dashboard.css"
 import DocumentCollection from "./DocumentCollection";
 import HRExpenseApproval from "./HRExpenseApproval";
+import AssignLeaveHolidays from "./AssignLeaveHolidays";
+import HRAttendance from "./HRAttendance";
 
 export default function Dashboard() {
   const [isOpen, setIsOpen] = useState(true);
@@ -58,8 +61,10 @@ export default function Dashboard() {
   { name: "Employees Form", icon: faReceipt, path: "employees-form" },
   { name: "Onboarded Employees", icon: faUpload, path: "onboard-employees" },
   { name: "Documents Collection", icon: faFileAlt , path: "collect-docs" },
+   { name: "Assign Leaves/Holidays", icon: faCalendarAlt , path: "assign-leaves" },
   { name: "Leave Management", icon: faPaperPlane, path: "leave-manage" },
   { name: "Expense Management", icon: faCoins, path: "expense-approval" },
+   { name: " Add Attendance ", icon: faCoins, path: "add-attendance" },
   { name: "Change Password", icon: faKey, path: "change-password" },  
 ];
   const [activeItem, setActiveItem] = useState("employee-attendance");
@@ -72,12 +77,11 @@ export default function Dashboard() {
           <img src={Logo} alt="Company Logo" className="logo-img" />
           <h2 className="logo-text">HR Dashboard</h2>
         </div>
-         <div className="profile"  style={{
-                        display: "flex",
-                        alignItems: "center",  
-                        gap: "8px",
-                        height: "100%",   
-                      }}>
+           <div
+    className="profile"
+    style={{ display: "flex", alignItems: "center", gap: "8px", height: "100%", cursor: "pointer" }}
+    onClick={() => navigate("/hr-dashboard/profile")} 
+  >
                            <FontAwesomeIcon icon={faCircleUser} size="2x" />
                              <span>
                             {username || "Guest"}
@@ -119,13 +123,16 @@ export default function Dashboard() {
           <Routes>
     <Route index element={<h3>Welcome to HR Dashboard</h3>} />
     <Route path="create-employee" element={<CreateEmployee />} />
+    <Route path="assign-leaves" element={<AssignLeaveHolidays />} />
     <Route path="employee-attendance" element={<Employees />} />
     <Route path="employees-form" element={<EmployeeForm />} />
+    <Route path="add-attendance" element={<HRAttendance />} />
     <Route path="onboard-employees" element={<OnboardingDocs />} />
     <Route path="collect-docs" element={<DocumentCollection />} />
     <Route path="leave-manage" element={<LeaveManagement />} />
     <Route path="expense-approval" element={<HRExpenseApproval />} /> 
     <Route path="change-password" element={<UpdatePassword/>}/>
+     <Route path="profile" element={<Profile />} />
   </Routes>
         </main>
       </div>

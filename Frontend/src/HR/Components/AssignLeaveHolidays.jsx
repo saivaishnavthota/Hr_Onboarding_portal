@@ -21,15 +21,26 @@ export default function AssignLeaveHolidays() {
   // Fetch locations
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8000/locations/")
-      .then((res) => setLocations(res.data))
-      .catch((err) => console.error(err));
+      .get("http://127.0.0.1:8000/locations")
+      .then((res) => {
+        const data = res.data;
+        if (Array.isArray(data.data)) {
+          setLocations(data.data);
+        } else {
+          console.error("Unexpected locations response:", data);
+          setLocations([]);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setLocations([]);
+      });
   }, []);
 
   // Fetch employees
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8000/users")
+      .get("http://127.0.0.1:8000/users/employees")
       .then((res) => setEmployees(res.data))
       .catch((err) => console.error(err));
   }, []);
@@ -38,71 +49,67 @@ export default function AssignLeaveHolidays() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleAddHoliday = async () => {
+    if (!selectedLocation) {
+      toast.error("Please select a location!");
+      return;
+    }
+    if (!formData.date || !formData.reason) {
+      toast.warn("Both date and reason are required!");
+      return;
+    }
+    try {
+      await axios.post("http://127.0.0.1:8000/calendar/add", {
+        location_id: Number(selectedLocation),
+        holiday_date: formData.date,
+        holiday_name: formData.reason,
+      });
+      toast.success("Holiday added successfully!");
+      setFormData({ date: "", reason: "" });
+      handleViewHolidays(); // refresh holidays
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to add holiday.");
+    }
+  };
 
-const handleAddHoliday = async () => {
-  if (!selectedLocation) {
-    toast.error("Please select a location!");
-    return;
-  }
-  if (!formData.date || !formData.reason) {
-    toast.warn("Both date and reason are required!");
-    return;
-  }
-  try {
-    await axios.post("http://127.0.0.1:8000/calendar/add", {
-      location_id: Number(selectedLocation),
-      date: formData.date,
-      reason: formData.reason,
-    });
-    toast.success("Holiday added successfully!");
-    setFormData({ date: "", reason: "" });
-    handleViewHolidays(); // refresh holidays
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to add holiday.");
-  }
-};
+  const handleViewHolidays = async () => {
+    if (!selectedLocation) {
+      toast.error("Select a location first!");
+      return;
+    }
+    try {
+      const res = await axios.get(
+        `http://127.0.0.1:8000/calendar/by-location/${selectedLocation}`
+      );
+      setHolidays(res.data.data || []);
+      setShowHolidaysTable(true);
+      setShowCalendar(false);
+      toast.info("Showing holidays table!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch holidays.");
+    }
+  };
 
-
-const handleViewHolidays = async () => {
-  if (!selectedLocation) {
-    toast.error("Select a location first!");
-    return;
-  }
-  try {
-    const res = await axios.get(
-      `http://127.0.0.1:8000/calendar/by-location/${selectedLocation}`
-    );
-    setHolidays(res.data || []);
-    setShowHolidaysTable(true);
-    setShowCalendar(false);
-    toast.info("Showing holidays table!");
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to fetch holidays.");
-  }
-};
-
-
- const handleViewCalendar = async () => {
-  if (!selectedLocation) {
-    toast.error("Select a location first!");
-    return;
-  }
-  try {
-    const res = await axios.get(
-      `http://127.0.0.1:8000/calendar/by-location/${selectedLocation}`
-    );
-    setHolidays(res.data || []);
-    setShowCalendar(true);
-    setShowHolidaysTable(false);
-    toast.info("Showing holiday calendar!");
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to fetch calendar holidays.");
-  }
-};
-
+  const handleViewCalendar = async () => {
+    if (!selectedLocation) {
+      toast.error("Select a location first!");
+      return;
+    }
+    try {
+      const res = await axios.get(
+        `http://127.0.0.1:8000/calendar/by-location/${selectedLocation}`
+      );
+      setHolidays(res.data.data || []);
+      setShowCalendar(true);
+      setShowHolidaysTable(false);
+      toast.info("Showing holiday calendar!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch calendar holidays.");
+    }
+  };
 
   // 🔄 Refresh Section 1
   const handleRefresh = () => {
@@ -116,28 +123,39 @@ const handleViewHolidays = async () => {
 
   const handleEditRow = (id) => setEditingRow(id);
 
+  // ✅ FIX: use emp.id consistently
   const handleEmployeeChange = (id, field, value) => {
     setEmployees((prev) =>
-      prev.map((emp) => (emp.id === id ? { ...emp, [field]: value } : emp))
+      prev.map((emp) =>
+        emp.id === id ? { ...emp, [field]: value } : emp
+      )
     );
   };
 
-  const handleSubmitRow = (id) => {
+  const handleSubmitRow = async (id) => {
     const updatedEmployee = employees.find((emp) => emp.id === id);
-    console.log("Updated employee:", updatedEmployee);
 
-    // Example validation
     if (
-      updatedEmployee.sickLeave < 0 ||
-      updatedEmployee.casualLeave < 0 ||
-      updatedEmployee.annualLeave < 0
+      updatedEmployee.sick_leaves < 0 ||
+      updatedEmployee.casual_leaves < 0 ||
+      updatedEmployee.paid_leaves < 0
     ) {
       toast.error("Leave values cannot be negative!");
       return;
     }
 
-    toast.success(`Employee ${updatedEmployee.name}'s leaves updated!`);
-    setEditingRow(null);
+    try {
+      await axios.put(`http://127.0.0.1:8000/leave-balance/${id}`, {
+        sick_leaves: updatedEmployee.sick_leaves,
+        casual_leaves: updatedEmployee.casual_leaves,
+        paid_leaves: updatedEmployee.paid_leaves,
+      });
+      toast.success(`Employee ${updatedEmployee.name}'s leaves updated!`);
+      setEditingRow(null);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update leaves.");
+    }
   };
 
   return (
@@ -202,7 +220,8 @@ const handleViewHolidays = async () => {
             <h5 className="text-center">
               Public Holidays for{" "}
               {selectedLocation
-                ? locations.find((loc) => loc.id === selectedLocation)?.name
+                ? locations.find((loc) => loc.id === Number(selectedLocation))
+                    ?.name
                 : ""}
             </h5>
             <table className="custom-table">
@@ -215,8 +234,8 @@ const handleViewHolidays = async () => {
               <tbody>
                 {holidays.map((h, i) => (
                   <tr key={i}>
-                    <td>{h.date}</td>
-                    <td>{h.reason}</td>
+                    <td>{h.holiday_date}</td>
+                    <td>{h.holiday_name}</td>
                   </tr>
                 ))}
               </tbody>
@@ -229,14 +248,15 @@ const handleViewHolidays = async () => {
             <h5 className="text-center">
               Public Holidays for{" "}
               {selectedLocation
-                ? locations.find((loc) => loc.id === selectedLocation)?.name
+                ? locations.find((loc) => loc.id === Number(selectedLocation))
+                    ?.name
                 : ""}
             </h5>
             <Calendar
               tileClassName={({ date, view }) => {
                 if (view === "month") {
                   const localDate = date.toLocaleDateString("en-CA");
-                  if (holidays.some((h) => h.date === localDate)) {
+                  if (holidays.some((h) => h.holiday_date === localDate)) {
                     return "holiday-date";
                   }
                 }
@@ -257,11 +277,9 @@ const handleViewHolidays = async () => {
               <th>Name</th>
               <th>Email</th>
               <th>Type</th>
-              <th>Sick</th>
-              <th>Casual</th>
-              <th>Annual</th>
-              <th>Maternity</th>
-              <th>Paternity</th>
+              <th>Sick Leaves</th>
+              <th>Casual Leaves</th>
+              <th>Paid Leaves</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -272,25 +290,21 @@ const handleViewHolidays = async () => {
                 <td>{emp.name}</td>
                 <td>{emp.email}</td>
                 <td>{emp.type}</td>
-                {[
-                  "sickLeave",
-                  "casualLeave",
-                  "annualLeave",
-                  "maternity",
-                  "paternity",
-                ].map((field) => (
+
+                {["sick_leaves", "casual_leaves", "paid_leaves"].map((field) => (
                   <td key={field}>
                     <input
                       type="number"
-                      value={emp[field]}
+                      value={emp[field] ?? 0}
                       onChange={(e) =>
-                        handleEmployeeChange(emp.id, field, e.target.value)
+                        handleEmployeeChange(emp.id, field, Number(e.target.value))
                       }
                       disabled={editingRow !== emp.id}
                       className="table-input"
                     />
                   </td>
                 ))}
+
                 <td>
                   {editingRow === emp.id ? (
                     <button

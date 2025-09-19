@@ -27,6 +27,7 @@ import DocumentCollection from "./HR/Components/DocumentCollection";
 import UpdatePassword from "./Employee/Components/UpdatePassword";
 import ForgetPassword from "./Employee/Components/ForgetPassword";
 import AssignLeaveHolidays from "./HR/Components/AssignLeaveHolidays";
+import Profile from "./Employee/Components/Profile";
 function App() {
   return (
   //   <Routes>
@@ -58,7 +59,7 @@ function App() {
   //     />
   // </Routes>
 
-  <EmployeeAttendence/>
+  <EmployeeDashboard/>
 
   )
 }

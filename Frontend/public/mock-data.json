@@ -1,5 +1,11 @@
-[
-  { "id": "loc1", "name": "New York" },
-  { "id": "loc2", "name": "London" },
-  { "id": "loc3", "name": "Sydney" }
-]
+{
+  "employee_id": "E12345",
+  "name": "Rishitha Jaligam",
+  "email": "rishitha.j@example.com",
+  "employmentType": "Full-Time",
+  "role": "Software Engineer",
+  "contactNumber": "+91-9876543210",
+  "dateOfJoining": "2023-07-15",
+  "assignedManagers": ["Anil Kumar", "Priya Sharma"],
+  "assignedHRs": ["Meena Reddy"]
+}
