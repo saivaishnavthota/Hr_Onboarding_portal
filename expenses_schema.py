@@ -31,6 +31,7 @@ class ExpenseRequestCreate(SQLModel):
     description: Optional[str] = None
     expense_date: date
     tax_included: bool = False
+    submit_date: date 
 
 
 class ExpenseRequestRead(SQLModel):
@@ -44,6 +45,8 @@ class ExpenseRequestRead(SQLModel):
     expense_date: date
     tax_included: bool
     status: str
+    submit_date: date
+
     created_at: datetime
     updated_at: datetime
 
