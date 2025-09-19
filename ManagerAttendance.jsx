@@ -10,6 +10,10 @@ export default function EmployeeAttendance() {
   const [activeTab, setActiveTab] = useState("weekly");
   const [attendance, setAttendance] = useState({});
   const [toast, setToast] = useState({ message: null, isError: false });
+
+  const [dailyAttendance, setDailyAttendance] = useState([]);
+  const [yearFilter, setYearFilter] = useState(new Date().getFullYear());
+  const [monthFilter, setMonthFilter] = useState(new Date().getMonth() + 1); // default current month
   const token = localStorage.getItem("token");
 
   const formatDate = (date) => date.toISOString().split("T")[0];
@@ -17,9 +21,9 @@ export default function EmployeeAttendance() {
   const getWeekDates = () => {
     const today = new Date();
     const monday = new Date(today);
-    monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+    monday.setDate(today.getDate() - (today.getDay() === 0 ? 7 : today.getDay() - 1));
 
-    return Array.from({ length: 5 }, (_, i) => {
+    return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
       return d;
@@ -120,7 +124,7 @@ export default function EmployeeAttendance() {
   useEffect(() => {
     const fetchAttendance = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:8000/get_attendance", {  
+        const response = await fetch("http://127.0.0.1:8000/get_attendance", {
           headers: {
             "Authorization": `Bearer ${token}`,
           },
@@ -149,6 +153,30 @@ export default function EmployeeAttendance() {
     if (token) fetchAttendance();
   }, [token]);
 
+  const fetchDailyAttendance = async () => {
+    try {
+      const url = `http://127.0.0.1:8000/attendance/daily?year=${yearFilter}${monthFilter ? `&month=${monthFilter}` : ""}`;
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDailyAttendance(res.data || []);
+    } catch (err) {
+      console.error("Daily attendance fetch error:", err);
+    }
+  };
+
+  useEffect(() => {
+      if (activeTab === "daily") {
+        fetchDailyAttendance();
+      }
+    }, [activeTab, yearFilter, monthFilter]);
+
+  useEffect(() => {
+    if (toast.message) {
+      const timer = setTimeout(() => setToast({ message: null, isError: false }), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (toast.message) {
@@ -186,6 +214,14 @@ export default function EmployeeAttendance() {
             onClick={() => setActiveTab("calendar")}
           >
             Calendar View
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "daily" ? "active" : ""}`}
+            onClick={() => setActiveTab("daily")}
+          >
+            Monthly View
           </button>
         </li>
       </ul>
@@ -321,6 +357,80 @@ export default function EmployeeAttendance() {
               ) : null;
             }}
           />
+        )}
+
+
+        {/* Daily View */}
+        {activeTab === "daily" && (
+          <div>
+            <div className="d-flex mb-3 align-items-center gap-2">
+              <label>Year:</label>
+              <select
+                value={yearFilter}
+                onChange={(e) => setYearFilter(e.target.value)}
+                className="form-select w-auto"
+              >
+                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
+
+              <label>Month:</label>
+              <select
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+                className="form-select w-auto"
+              >
+                <option value="">All</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <option key={m} value={m}>
+                    {new Date(0, m - 1).toLocaleString("default", { month: "long" })}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setYearFilter(new Date().getFullYear());
+                  setMonthFilter("");
+                }}
+              >
+                Reset Filters
+              </button>
+            </div>
+
+            <table className="table table-bordered text-center">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Action</th>
+                  <th>Hours</th>
+                  <th>Project</th>
+                  <th>Sub Task</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dailyAttendance.length === 0 ? (
+                  <tr>
+                    <td colSpan="5">No records found</td>
+                  </tr>
+                ) : (
+                  dailyAttendance.map((entry, idx) => (
+                    <tr key={idx}>
+                      <td>{new Date(entry.date).toLocaleDateString()}</td>
+                      <td style={{ color: getStatusColor(entry.action) }}>{entry.action}</td>
+                      <td>{entry.hours}</td>
+                      <td>{entry.project}</td>
+                      <td>{entry.subTask}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
